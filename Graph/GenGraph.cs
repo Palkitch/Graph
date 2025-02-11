@@ -2,33 +2,33 @@
 using System.Collections.Generic;
 using System.Numerics;
 
-public class GenGraph<K, V, E> where E : IComparable<E>, INumber<E>
+public class GenGraph<VertexKey, VertexValue, EdgeValue> where EdgeValue : IComparable<EdgeValue>, INumber<EdgeValue>
 {
     private class Vertex
     {
-        public K Key { get; }
-        public V Value { get; set; }
-        public Dictionary<K, E> Edges { get; } = new();
+        public VertexKey Key { get; }
+        public VertexValue Value { get; set; }
+        public Dictionary<VertexKey, EdgeValue> Edges { get; } = new();
 
-        public Vertex(K key, V value)
+        public Vertex(VertexKey key, VertexValue value)
         {
             Key = key;
             Value = value;
         }
     }
 
-    private readonly Dictionary<K, Vertex> vertices = new();
+    private readonly Dictionary<VertexKey, Vertex> vertices = new();
 
-    public bool AddVertex(K key, V value)
+    public bool AddVertex(VertexKey key, VertexValue value)
     {
         if (vertices.ContainsKey(key)) return false;
         vertices[key] = new Vertex(key, value);
         return true;
     }
 
-    public bool AddEdge(K from, K to, E value)
+    public bool AddEdge(VertexKey from, VertexKey to, EdgeValue value)
     {
-        if (!vertices.ContainsKey(from) || !vertices.ContainsKey(to) || from.Equals(to)) return false;
+        if (!vertices.ContainsKey(from) || !vertices.ContainsKey(to) || from.Equals(to)) return false; // Vrcholy u kterých chceme vytvořit hranu neexistují
 
         var v1 = vertices[from];
         var v2 = vertices[to];
@@ -40,9 +40,9 @@ public class GenGraph<K, V, E> where E : IComparable<E>, INumber<E>
         return true;
     }
 
-    public bool RemoveEdge(K from, K to)
+    public bool RemoveEdge(VertexKey from, VertexKey to)
     {
-        if (!vertices.ContainsKey(from) || !vertices.ContainsKey(to)) return false;
+        if (!vertices.ContainsKey(from) || !vertices.ContainsKey(to)) return false; // Kontrola, zda vrcholy vůbec existují
 
         var v1 = vertices[from];
         var v2 = vertices[to];
@@ -54,51 +54,51 @@ public class GenGraph<K, V, E> where E : IComparable<E>, INumber<E>
         return true;
     }
 
-    public V? FindVertex(K key)
+    public VertexValue? FindVertex(VertexKey key)
     {
         return vertices.TryGetValue(key, out var vertex) ? vertex.Value : default;
     }
 
-    private IEnumerable<KeyValuePair<K, E>> GetNeighbors(K key)
+    private IEnumerable<KeyValuePair<VertexKey, EdgeValue>> GetNeighbors(VertexKey key)
     {
         if (vertices.TryGetValue(key, out var vertex))
         {
             return vertex.Edges;
         }
-        return Enumerable.Empty<KeyValuePair<K, E>>();
+        return Enumerable.Empty<KeyValuePair<VertexKey, EdgeValue>>();
     }
 
-    private E GetMaxValue()
+    private EdgeValue GetMaxValue()
     {
-        if (typeof(E) == typeof(int)) return (E)(object)int.MaxValue;
-        if (typeof(E) == typeof(double)) return (E)(object)double.MaxValue;
-        if (typeof(E) == typeof(float)) return (E)(object)float.MaxValue;
+        if (typeof(EdgeValue) == typeof(int)) return (EdgeValue)(object)int.MaxValue;
+        if (typeof(EdgeValue) == typeof(double)) return (EdgeValue)(object)double.MaxValue;
+        if (typeof(EdgeValue) == typeof(float)) return (EdgeValue)(object)float.MaxValue;
         throw new NotSupportedException("Unsupported edge type");
     }
 
-    private E Add(E a, E b)
+    private EdgeValue Add(EdgeValue a, EdgeValue b)
     {
         return a + b; 
     }
 
-    private bool Less(E a, E b)
+    private bool Less(EdgeValue a, EdgeValue b)
     {
         return a.CompareTo(b) < 0;
     }
 
-    public Dictionary<K, E> FindShortestPaths(K startKey)
+    public Dictionary<VertexKey, EdgeValue> FindShortestPaths(VertexKey startKey)
     {
-        var distances = new Dictionary<K, E>();
-        var visited = new HashSet<K>();
-        var pq = new PriorityQueue<K, E>();
+        var distances = new Dictionary<VertexKey, EdgeValue>();
+        var visited = new HashSet<VertexKey>();
+        var pq = new PriorityQueue<VertexKey, EdgeValue>();
 
         // Inicializace vzdáleností
         foreach (var vertex in vertices.Keys)
         {
-            if (EqualityComparer<K>.Default.Equals(vertex, startKey))
+            if (EqualityComparer<VertexKey>.Default.Equals(vertex, startKey))
             {
-                distances[vertex] = default(E)!;
-                pq.Enqueue(vertex, default(E)!);
+                distances[vertex] = default(EdgeValue)!;
+                pq.Enqueue(vertex, default(EdgeValue)!);
             }
             else
             {
