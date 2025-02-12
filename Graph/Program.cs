@@ -5,23 +5,23 @@ internal class Program
     private static void Main(string[] args)
     {
         // Vytvoření instance grafu
-        //var graph = new GenericGraph<string, string, int>();
-        var startVertex = "BB";
+        var graph = new GenericGraph<string, string, int>();
+        var startVertex = "A";
 
-        //graph.AddVertex("A", "Město A");
-        //graph.AddVertex("B", "Město B");
-        //graph.AddVertex("C", "Město C");
-        //graph.AddVertex("D", "Město D");
-        //graph.AddVertex("E", "Město E");
-        //graph.AddVertex("F", "Město F");
+        graph.AddVertex("A", "Město A");
+        graph.AddVertex("B", "Město B");
+        graph.AddVertex("C", "Město C");
+        graph.AddVertex("D", "Město D");
+        graph.AddVertex("E", "Město E");
+        graph.AddVertex("F", "Město F");
 
-        //graph.AddEdge("A", "B", 4);
-        //graph.AddEdge("A", "C", 2);
-        //graph.AddEdge("B", "D", 3);
-        //graph.AddEdge("C", "D", 1);
-        //graph.AddEdge("C", "E", 5);
-        //graph.AddEdge("D", "E", 4);
-        //graph.AddEdge("E", "F", 4);
+        graph.AddEdge("A", "B", 4);
+        graph.AddEdge("A", "C", 2);
+        graph.AddEdge("B", "D", 3);
+        graph.AddEdge("C", "D", 1);
+        graph.AddEdge("C", "E", 5);
+        graph.AddEdge("D", "E", 4);
+        graph.AddEdge("E", "F", 4);
 
 
         //var result = graph.FindShortestPaths(startVertex);
@@ -32,10 +32,20 @@ internal class Program
         //graph.PrintPredecessors();
 
 
-        var graph = GenerateGraph();
+        //var graph = GenerateGraph();
         graph.PrintGraph();
-        var shortestPaths = graph.FindShortestPathsToVertex(startVertex);
+        var shortestPaths = graph.FindShortestPathsFromVertex(startVertex);
         ProcessShortestPaths(startVertex, shortestPaths);
+
+        graph.PrintPredecessors();
+
+        graph.BlockEdge("E", "F");
+        Console.WriteLine("Blokace E - F \n");
+
+        graph.PrintGraph();
+        shortestPaths = graph.FindShortestPathsFromVertex(startVertex);
+        ProcessShortestPaths(startVertex, shortestPaths);
+
         graph.PrintPredecessors();
     }
 
@@ -72,7 +82,7 @@ internal class Program
         Console.WriteLine($"Nejkratší cesty do {startVertex}:");
         foreach (var kvp in shortestPaths)
         {
-            Console.WriteLine($"Cíl: {kvp.Key}, Vzdálenost: {kvp.Value.Distance}, Cesta: {string.Join(" <- ", kvp.Value.Path)}");
+            Console.WriteLine($"Cíl: {kvp.Key}, Vzdálenost: {kvp.Value.Distance}, Cesta: {string.Join(" -> ", kvp.Value.Path)}");
         }
     }
 }

@@ -1,7 +1,22 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
+
+public class Edge<KVertex, VEdge> where VEdge : IComparable<VEdge>, INumber<VEdge>
+{
+    public KVertex From { get; }
+    public KVertex To { get; }
+    public VEdge Weight { get; set; }
+    public bool IsAccessible { get; set; } = true;
+
+    public Edge(KVertex from, KVertex to, VEdge weight)
+    {
+        From = from;
+        To = to;
+        Weight = weight;
+    }
+}
 
 public class GenericGraph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEdge>, INumber<VEdge>
 {
@@ -9,7 +24,7 @@ public class GenericGraph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEd
     {
         public KVertex Key { get; }
         public VVertex Value { get; set; }
-        public Dictionary<KVertex, VEdge> Edges { get; } = new();
+        public List<Edge<KVertex, VEdge>> Edges { get; } = new();
 
         public Vertex(KVertex key, VVertex value)
         {
@@ -17,8 +32,9 @@ public class GenericGraph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEd
             Value = value;
         }
     }
-    public Dictionary<KVertex, KVertex> Predecessors { get; private set; }
+
     private readonly Dictionary<KVertex, Vertex> vertices = new();
+    public Dictionary<KVertex, KVertex> Predecessors { get; private set; }
 
     public bool AddVertex(KVertex key, VVertex value)
     {
@@ -27,47 +43,40 @@ public class GenericGraph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEd
         return true;
     }
 
-    public bool AddEdge(KVertex from, KVertex to, VEdge value)
+    public bool AddEdge(KVertex from, KVertex to, VEdge weight)
     {
-        if (!vertices.ContainsKey(from) || !vertices.ContainsKey(to) || from.Equals(to)) return false; // Vrcholy u kterých chceme vytvořit hranu neexistují
+        if (!vertices.ContainsKey(from) || !vertices.ContainsKey(to) || from.Equals(to)) return false;
 
-        var v1 = vertices[from];
-        var v2 = vertices[to];
-
-        if (v1.Edges.ContainsKey(to)) return false; // Hrana už existuje
-
-        v1.Edges[to] = value;
-        v2.Edges[from] = value;
+        var edge = new Edge<KVertex, VEdge>(from, to, weight);
+        vertices[from].Edges.Add(edge);
+        vertices[to].Edges.Add(new Edge<KVertex, VEdge>(to, from, weight));
         return true;
+    }
+    public bool BlockEdge(KVertex from, KVertex to)
+    {
+        if (!vertices.ContainsKey(from) || !vertices.ContainsKey(to)) return false;
+
+        var edgeFrom = vertices[from].Edges.FirstOrDefault(e => e.To.Equals(to));
+        var edgeTo = vertices[to].Edges.FirstOrDefault(e => e.To.Equals(from));
+
+        if (edgeFrom != null) edgeFrom.IsAccessible = false;
+        if (edgeTo != null) edgeTo.IsAccessible = false;
+
+        return edgeFrom != null && edgeTo != null;
     }
 
     public bool RemoveEdge(KVertex from, KVertex to)
     {
-        if (!vertices.ContainsKey(from) || !vertices.ContainsKey(to)) return false; // Kontrola, zda vrcholy vůbec existují
+        if (!vertices.ContainsKey(from) || !vertices.ContainsKey(to)) return false;
 
-        var v1 = vertices[from];
-        var v2 = vertices[to];
-
-        if (!v1.Edges.ContainsKey(to)) return false;
-
-        v1.Edges.Remove(to);
-        v2.Edges.Remove(from);
+        vertices[from].Edges.RemoveAll(e => e.To.Equals(to));
+        vertices[to].Edges.RemoveAll(e => e.To.Equals(from));
         return true;
     }
 
-    public VVertex? FindVertex(KVertex key)
-    {
-        return vertices.TryGetValue(key, out var vertex) ? vertex.Value : default;
-    }
+    public VVertex? FindVertex(KVertex key) => vertices.TryGetValue(key, out var vertex) ? vertex.Value : default;
 
-    private IEnumerable<KeyValuePair<KVertex, VEdge>> GetNeighbors(KVertex key)
-    {
-        if (vertices.TryGetValue(key, out var vertex))
-        {
-            return vertex.Edges;
-        }
-        return Enumerable.Empty<KeyValuePair<KVertex, VEdge>>();
-    }
+    private IEnumerable<Edge<KVertex, VEdge>> GetNeighbors(KVertex key) => vertices.TryGetValue(key, out var vertex) ? vertex.Edges.Where(e => e.IsAccessible) : Enumerable.Empty<Edge<KVertex, VEdge>>();
 
     private VEdge GetMaxValue()
     {
@@ -77,15 +86,8 @@ public class GenericGraph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEd
         throw new NotSupportedException("Unsupported edge type");
     }
 
-    private VEdge Add(VEdge a, VEdge b)
-    {
-        return a + b;
-    }
-
-    private bool Less(VEdge a, VEdge b)
-    {
-        return a.CompareTo(b) < 0;
-    }
+    private VEdge Add(VEdge a, VEdge b) => a + b;
+    private bool Less(VEdge a, VEdge b) => a.CompareTo(b) < 0;
 
     public Dictionary<KVertex, (VEdge Distance, List<KVertex> Path)> FindShortestPathsFromVertex(KVertex startKey)
     {
@@ -96,48 +98,43 @@ public class GenericGraph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEd
 
         var maxValue = GetMaxValue();
 
-        // Inicializace vzdáleností a priority queue
         foreach (var vertex in vertices.Keys)
         {
-            if (EqualityComparer<KVertex>.Default.Equals(vertex, startKey))
-            {
-                distances[vertex] = default(VEdge)!;
-                priorityQueue.Enqueue(vertex, default(VEdge)!);
-            }
-            else
-            {
-                distances[vertex] = maxValue;
-            }
+            distances[vertex] = EqualityComparer<KVertex>.Default.Equals(vertex, startKey) ? default! : maxValue;
         }
+        priorityQueue.Enqueue(startKey, default!);
 
         while (priorityQueue.Count > 0)
         {
             var current = priorityQueue.Dequeue();
-            if (visited.Contains(current))
-                continue;
-
+            if (visited.Contains(current)) continue;
             visited.Add(current);
 
-            foreach (var neighbor in GetNeighbors(current))
+            foreach (var edge in GetNeighbors(current))
             {
-                if (visited.Contains(neighbor.Key))
-                    continue;
-
-                var newDistance = Add(distances[current], neighbor.Value);
-                if (Less(newDistance, distances[neighbor.Key]))
+                if (visited.Contains(edge.To)) continue;
+                var newDistance = Add(distances[current], edge.Weight);
+                if (Less(newDistance, distances[edge.To]))
                 {
-                    distances[neighbor.Key] = newDistance;
-                    Predecessors[neighbor.Key] = current;
-                    priorityQueue.Enqueue(neighbor.Key, newDistance);
+                    distances[edge.To] = newDistance;
+                    Predecessors[edge.To] = current;
+                    priorityQueue.Enqueue(edge.To, newDistance);
                 }
             }
         }
 
+        return BuildPaths(distances, startKey);
+    }
+
+    private Dictionary<KVertex, (VEdge Distance, List<KVertex> Path)> BuildPaths(Dictionary<KVertex, VEdge> distances, KVertex source)
+    {
         var paths = new Dictionary<KVertex, (VEdge Distance, List<KVertex> Path)>();
+        var maxValue = GetMaxValue();
+
         foreach (var vertex in distances.Keys)
         {
             if (EqualityComparer<VEdge>.Default.Equals(distances[vertex], maxValue))
-                continue;
+                continue; // Izolovaný vrchol ignorujeme
 
             var path = new List<KVertex>();
             var current = vertex;
@@ -146,79 +143,11 @@ public class GenericGraph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEd
                 path.Add(current);
                 current = Predecessors[current];
             }
-            path.Add(startKey);
+            path.Add(source);
             path.Reverse();
             paths[vertex] = (distances[vertex], path);
         }
-
         return paths;
-    }
-
-    public Dictionary<KVertex, (VEdge Distance, List<KVertex> Path)> FindShortestPathsToVertex(KVertex targetKey)
-    {
-        var distances = new Dictionary<KVertex, VEdge>();
-        Predecessors = new Dictionary<KVertex, KVertex>();
-        var visited = new HashSet<KVertex>();
-        var priorityQueue = new PriorityQueue<KVertex, VEdge>();
-
-        var maxValue = GetMaxValue();
-
-
-        foreach (var vertex in vertices.Keys)
-        {
-            distances[vertex] = maxValue;
-        }
-
-        distances[targetKey] = default(VEdge)!;
-        priorityQueue.Enqueue(targetKey, default(VEdge)!);
-
-        while (priorityQueue.Count > 0)
-        {
-            var current = priorityQueue.Dequeue();
-            if (visited.Contains(current))
-                continue;
-
-            visited.Add(current);
-
-
-            foreach (var neighbor in vertices)
-            {
-                if (!neighbor.Value.Edges.ContainsKey(current) || visited.Contains(neighbor.Key))
-                    continue;
-
-                var weight = neighbor.Value.Edges[current];
-                var newDistance = Add(distances[current], weight);
-
-                if (Less(newDistance, distances[neighbor.Key]))
-                {
-                    distances[neighbor.Key] = newDistance;
-                    Predecessors[neighbor.Key] = current;
-                    priorityQueue.Enqueue(neighbor.Key, newDistance);
-                }
-            }
-        }
-
-        var pathsToTarget = new Dictionary<KVertex, (VEdge Distance, List<KVertex> Path)>();
-
-        foreach (var vertex in distances.Keys)
-        {
-            if (EqualityComparer<VEdge>.Default.Equals(distances[vertex], maxValue))
-                continue;
-
-            var path = new List<KVertex>();
-            var current = vertex;
-            while (Predecessors.ContainsKey(current))
-            {
-                path.Add(current);
-                current = Predecessors[current];
-            }
-            path.Add(targetKey);
-            path.Reverse();
-
-            pathsToTarget[vertex] = (distances[vertex], path);
-        }
-
-        return pathsToTarget;
     }
 
     public void PrintGraph()
@@ -226,10 +155,9 @@ public class GenericGraph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEd
         foreach (var vertex in vertices)
         {
             Console.Write($"{vertex.Key}: ");
-            Console.WriteLine(string.Join(", ", vertex.Value.Edges.Select(e => $"{e.Key} [{e.Value}]")));
+            Console.WriteLine(string.Join(", ", vertex.Value.Edges.Select(e => $"{e.To} [{e.Weight}] {(e.IsAccessible ? "" : "(Blocked)")}")));
         }
     }
-
     public void PrintPredecessors()
     {
         int columnWidth = 4;

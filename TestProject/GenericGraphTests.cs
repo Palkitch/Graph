@@ -1,6 +1,6 @@
 ﻿
 [TestClass]
-public class GenGraphTests
+public class GenericGraphTests
 {
     private GenericGraph<int, string, int> graph;
 
@@ -127,6 +127,74 @@ public class GenGraphTests
         Assert.IsTrue(result.ContainsKey(3));
         Assert.IsFalse(result.ContainsKey(4)); // Vrchol 4 není dosažitelný
     }
-    
+    [TestMethod]
+    public void BlockEdge_ShouldBeIgnoredInShortestPath()
+    {
+        graph.AddVertex(1, "A");
+        graph.AddVertex(2, "B");
+        graph.AddVertex(3, "C");
+
+        graph.AddEdge(1, 2, 5);
+        graph.AddEdge(2, 3, 7);
+
+        // Blokujeme hranu mezi 1 a 2
+        graph.BlockEdge(1, 2);
+
+        var result = graph.FindShortestPathsFromVertex(1);
+
+        Assert.IsFalse(result.ContainsKey(2)); // 2 by neměl být dosažitelný
+        Assert.IsFalse(result.ContainsKey(3)); // 3 by také neměl být dosažitelný
+    }
+
+    [TestMethod]
+    public void UnblockedEdge_ShouldBeConsideredInShortestPath()
+    {
+        graph.AddVertex(1, "A");
+        graph.AddVertex(2, "B");
+        graph.AddVertex(3, "C");
+
+        graph.AddEdge(1, 2, 5);
+        graph.AddEdge(2, 3, 7);
+
+        // Nejprve hranu zakážeme
+        graph.BlockEdge(1, 2);
+
+        var blockedResult = graph.FindShortestPathsFromVertex(1);
+        Assert.IsFalse(blockedResult.ContainsKey(2));
+
+        // Opětovně povolíme hranu
+        graph.AddEdge(1, 2, 5);
+
+        var result = graph.FindShortestPathsFromVertex(1);
+
+        Assert.IsTrue(result.ContainsKey(2));
+        Assert.IsTrue(result.ContainsKey(3));
+        Assert.AreEqual(5, result[2].Distance);
+        Assert.AreEqual(12, result[3].Distance);
+    }
+
+    [TestMethod]
+    public void IsolatedVertex_ShouldRemainUnreachable()
+    {
+        graph.AddVertex(1, "A");
+        graph.AddVertex(2, "B");
+        graph.AddVertex(3, "C");
+        graph.AddVertex(4, "D"); // Izolovaný vrchol
+
+        graph.AddEdge(1, 2, 5);
+        graph.AddEdge(2, 3, 7);
+
+        // Zablokujeme všechny hrany
+        graph.BlockEdge(1, 2);
+        graph.BlockEdge(2, 3);
+
+        var result = graph.FindShortestPathsFromVertex(1);
+
+        Assert.IsFalse(result.ContainsKey(2));
+        Assert.IsFalse(result.ContainsKey(3));
+        Assert.IsFalse(result.ContainsKey(4)); // Izolovaný vrchol zůstává izolovaný
+    }
+
+
 
 }
