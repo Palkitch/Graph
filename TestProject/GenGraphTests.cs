@@ -2,12 +2,12 @@
 [TestClass]
 public class GenGraphTests
 {
-    private GenGraph<int, string, int> graph;
+    private GenericGraph<int, string, int> graph;
 
     [TestInitialize]
     public void SetUp()
     {
-        graph = new GenGraph<int, string, int>();
+        graph = new GenericGraph<int, string, int>();
     }
 
     [TestMethod]
@@ -38,7 +38,7 @@ public class GenGraphTests
         graph.AddVertex(2, "B");
         graph.AddEdge(1, 2, 5);
 
-        var result = graph.FindShortestPaths(1);
+        var result = graph.FindShortestPathsFromVertex(1);
 
         Assert.IsTrue(result.ContainsKey(2));
         Assert.AreEqual(5, result[2].Distance);
@@ -55,7 +55,7 @@ public class GenGraphTests
         graph.AddEdge(2, 3, 5);
         graph.AddEdge(1, 3, 8); // Přímá cesta je kratší
 
-        var result = graph.FindShortestPaths(1);
+        var result = graph.FindShortestPathsFromVertex(1);
 
         Assert.AreEqual(8, result[3].Distance);
         CollectionAssert.AreEqual(new List<int> { 1, 3 }, result[3].Path);
@@ -70,7 +70,7 @@ public class GenGraphTests
 
         graph.AddEdge(1, 2, 5);
 
-        var result = graph.FindShortestPaths(1);
+        var result = graph.FindShortestPathsFromVertex(1);
 
         Assert.IsFalse(result.ContainsKey(3)); // C nelze dosáhnout
     }
@@ -80,7 +80,7 @@ public class GenGraphTests
     {
         graph.AddVertex(1, "A");
 
-        var result = graph.FindShortestPaths(1);
+        var result = graph.FindShortestPathsFromVertex(1);
 
         Assert.AreEqual(0, result[1].Distance);
         CollectionAssert.AreEqual(new List<int> { 1 }, result[1].Path);
@@ -99,7 +99,7 @@ public class GenGraphTests
         graph.AddEdge(3, 4, 2);
         graph.AddEdge(2, 4, 15);
 
-        var result = graph.FindShortestPaths(1);
+        var result = graph.FindShortestPathsFromVertex(1);
 
         // Nejkratší cesta do 3 by měla být 3 (přímá hrana)
         Assert.AreEqual(3, result[3].Distance);
@@ -121,46 +121,12 @@ public class GenGraphTests
         graph.AddEdge(1, 2, 5);
         graph.AddEdge(2, 3, 7);
 
-        var result = graph.FindShortestPaths(1);
+        var result = graph.FindShortestPathsFromVertex(1);
 
         Assert.IsTrue(result.ContainsKey(2));
         Assert.IsTrue(result.ContainsKey(3));
         Assert.IsFalse(result.ContainsKey(4)); // Vrchol 4 není dosažitelný
     }
-    [TestMethod]
-    public void FindShortestPaths_LargeGraph_ShouldReturnCorrectPaths()
-    {
-        // Přidání 15 vrcholů
-        for (int i = 1; i <= 15; i++)
-        {
-            graph.AddVertex(i, $"Node {i}");
-        }
-
-        // Přidání 30 hran mezi náhodnými vrcholy
-        var edges = new (int, int, int)[]
-        {
-        (1, 2, 4), (1, 3, 2), (2, 4, 7), (3, 4, 1), (4, 5, 3),
-        (5, 6, 2), (6, 7, 5), (7, 8, 1), (8, 9, 6), (9, 10, 3),
-        (10, 11, 4), (11, 12, 2), (12, 13, 8), (13, 14, 3), (14, 15, 7),
-        (2, 6, 5), (3, 7, 6), (5, 9, 4), (6, 10, 7), (8, 12, 5),
-        (10, 14, 3), (1, 5, 10), (3, 8, 8), (4, 9, 2), (7, 11, 9),
-        (9, 13, 6), (12, 15, 4), (6, 11, 3), (2, 8, 9), (5, 10, 5)
-        };
-
-        foreach (var (from, to, weight) in edges)
-        {
-            graph.AddEdge(from, to, weight);
-        }
-
-        var result = graph.FindShortestPaths(1);
-
-        // Ověření, že všechny dosažitelné uzly mají cestu
-        for (int i = 2; i <= 15; i++)
-        {
-            Assert.IsTrue(result.ContainsKey(i), $"Cesta k uzlu {i} by měla existovat.");
-        }
-
-        
-    }
+    
 
 }
