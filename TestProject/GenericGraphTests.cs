@@ -138,7 +138,7 @@ public class GenericGraphTests
         graph.AddEdge(2, 3, 7);
 
         // Blokujeme hranu mezi 1 a 2
-        graph.BlockEdge(1, 2);
+        graph.ChangeAccessibility(1, 2);
 
         var result = graph.FindShortestPathsFromVertex(1);
 
@@ -157,7 +157,7 @@ public class GenericGraphTests
         graph.AddEdge(2, 3, 7);
 
         // Nejprve hranu zakážeme
-        graph.BlockEdge(1, 2);
+        graph.ChangeAccessibility(1, 2);
 
         var blockedResult = graph.FindShortestPathsFromVertex(1);
         Assert.IsFalse(blockedResult.ContainsKey(2));
@@ -185,8 +185,8 @@ public class GenericGraphTests
         graph.AddEdge(2, 3, 7);
 
         // Zablokujeme všechny hrany
-        graph.BlockEdge(1, 2);
-        graph.BlockEdge(2, 3);
+        graph.ChangeAccessibility(1, 2);
+        graph.ChangeAccessibility(2, 3);
 
         var result = graph.FindShortestPathsFromVertex(1);
 

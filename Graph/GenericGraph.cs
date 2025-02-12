@@ -20,6 +20,8 @@ public class Edge<KVertex, VEdge> where VEdge : IComparable<VEdge>, INumber<VEdg
 
 public class GenericGraph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEdge>, INumber<VEdge>
 {
+    private readonly Dictionary<KVertex, Vertex> vertices = new();
+    public Dictionary<KVertex, KVertex> Predecessors { get; private set; }
     private class Vertex
     {
         public KVertex Key { get; }
@@ -32,17 +34,13 @@ public class GenericGraph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEd
             Value = value;
         }
     }
-
-    private readonly Dictionary<KVertex, Vertex> vertices = new();
-    public Dictionary<KVertex, KVertex> Predecessors { get; private set; }
-
+    #region Edge/Vertex methods
     public bool AddVertex(KVertex key, VVertex value)
     {
         if (vertices.ContainsKey(key)) return false;
         vertices[key] = new Vertex(key, value);
         return true;
     }
-
     public bool AddEdge(KVertex from, KVertex to, VEdge weight)
     {
         if (!vertices.ContainsKey(from) || !vertices.ContainsKey(to) || from.Equals(to)) return false;
@@ -52,19 +50,18 @@ public class GenericGraph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEd
         vertices[to].Edges.Add(new Edge<KVertex, VEdge>(to, from, weight));
         return true;
     }
-    public bool BlockEdge(KVertex from, KVertex to)
+    public bool ChangeAccessibility(KVertex from, KVertex to)
     {
         if (!vertices.ContainsKey(from) || !vertices.ContainsKey(to)) return false;
 
         var edgeFrom = vertices[from].Edges.FirstOrDefault(e => e.To.Equals(to));
         var edgeTo = vertices[to].Edges.FirstOrDefault(e => e.To.Equals(from));
 
-        if (edgeFrom != null) edgeFrom.IsAccessible = false;
-        if (edgeTo != null) edgeTo.IsAccessible = false;
+        if (edgeFrom != null) edgeFrom.IsAccessible = !edgeFrom.IsAccessible;
+        if (edgeTo != null) edgeTo.IsAccessible = !edgeTo.IsAccessible;
 
         return edgeFrom != null && edgeTo != null;
     }
-
     public bool RemoveEdge(KVertex from, KVertex to)
     {
         if (!vertices.ContainsKey(from) || !vertices.ContainsKey(to)) return false;
@@ -73,11 +70,10 @@ public class GenericGraph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEd
         vertices[to].Edges.RemoveAll(e => e.To.Equals(from));
         return true;
     }
-
     public VVertex? FindVertex(KVertex key) => vertices.TryGetValue(key, out var vertex) ? vertex.Value : default;
-
     private IEnumerable<Edge<KVertex, VEdge>> GetNeighbors(KVertex key) => vertices.TryGetValue(key, out var vertex) ? vertex.Edges.Where(e => e.IsAccessible) : Enumerable.Empty<Edge<KVertex, VEdge>>();
-
+    #endregion
+    #region Methods used in shortest path algorithm
     private VEdge GetMaxValue()
     {
         if (typeof(VEdge) == typeof(int)) return (VEdge)(object)int.MaxValue;
@@ -85,10 +81,8 @@ public class GenericGraph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEd
         if (typeof(VEdge) == typeof(float)) return (VEdge)(object)float.MaxValue;
         throw new NotSupportedException("Unsupported edge type");
     }
-
     private VEdge Add(VEdge a, VEdge b) => a + b;
     private bool Less(VEdge a, VEdge b) => a.CompareTo(b) < 0;
-
     public Dictionary<KVertex, (VEdge Distance, List<KVertex> Path)> FindShortestPathsFromVertex(KVertex startKey)
     {
         var distances = new Dictionary<KVertex, VEdge>();
@@ -125,7 +119,6 @@ public class GenericGraph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEd
 
         return BuildPaths(distances, startKey);
     }
-
     private Dictionary<KVertex, (VEdge Distance, List<KVertex> Path)> BuildPaths(Dictionary<KVertex, VEdge> distances, KVertex source)
     {
         var paths = new Dictionary<KVertex, (VEdge Distance, List<KVertex> Path)>();
@@ -149,7 +142,8 @@ public class GenericGraph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEd
         }
         return paths;
     }
-
+    #endregion
+    #region Print methods
     public void PrintGraph()
     {
         foreach (var vertex in vertices)
@@ -168,4 +162,5 @@ public class GenericGraph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEd
         Console.WriteLine("Vrcholy:    " + vertices);
         Console.WriteLine("Předchůdci: " + predecessors);
     }
+    #endregion
 }

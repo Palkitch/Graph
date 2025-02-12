@@ -16,9 +16,11 @@ internal class Program
         graph.AddVertex("F", "Město F");
 
         graph.AddEdge("A", "B", 4);
+        graph.ChangeAccessibility("A", "B");
         graph.AddEdge("A", "C", 2);
         graph.AddEdge("B", "D", 3);
         graph.AddEdge("C", "D", 1);
+        graph.ChangeAccessibility("C", "D");
         graph.AddEdge("C", "E", 5);
         graph.AddEdge("D", "E", 4);
         graph.AddEdge("E", "F", 4);
@@ -35,15 +37,6 @@ internal class Program
         //var graph = GenerateGraph();
         graph.PrintGraph();
         var shortestPaths = graph.FindShortestPathsFromVertex(startVertex);
-        ProcessShortestPaths(startVertex, shortestPaths);
-
-        graph.PrintPredecessors();
-
-        graph.BlockEdge("E", "F");
-        Console.WriteLine("Blokace E - F \n");
-
-        graph.PrintGraph();
-        shortestPaths = graph.FindShortestPathsFromVertex(startVertex);
         ProcessShortestPaths(startVertex, shortestPaths);
 
         graph.PrintPredecessors();
