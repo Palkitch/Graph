@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -16,7 +17,7 @@ public class GenGraph<VertexKey, VertexValue, EdgeValue> where EdgeValue : IComp
             Value = value;
         }
     }
-
+    public Dictionary<VertexKey, VertexKey> Predecessors { get; private set; }
     private readonly Dictionary<VertexKey, Vertex> vertices = new();
 
     public bool AddVertex(VertexKey key, VertexValue value)
@@ -78,7 +79,7 @@ public class GenGraph<VertexKey, VertexValue, EdgeValue> where EdgeValue : IComp
 
     private EdgeValue Add(EdgeValue a, EdgeValue b)
     {
-        return a + b; 
+        return a + b;
     }
 
     private bool Less(EdgeValue a, EdgeValue b)
@@ -86,29 +87,32 @@ public class GenGraph<VertexKey, VertexValue, EdgeValue> where EdgeValue : IComp
         return a.CompareTo(b) < 0;
     }
 
-    public Dictionary<VertexKey, EdgeValue> FindShortestPaths(VertexKey startKey)
+    public Dictionary<VertexKey, (EdgeValue Distance, List<VertexKey> Path)> FindShortestPaths(VertexKey startKey)
     {
         var distances = new Dictionary<VertexKey, EdgeValue>();
+        Predecessors = new Dictionary<VertexKey, VertexKey>();
         var visited = new HashSet<VertexKey>();
-        var pq = new PriorityQueue<VertexKey, EdgeValue>();
+        var priorityQueue = new PriorityQueue<VertexKey, EdgeValue>();
 
-        // Inicializace vzdáleností
+        var maxValue = GetMaxValue();
+
+        // Inicializace vzdáleností a priority queue
         foreach (var vertex in vertices.Keys)
         {
             if (EqualityComparer<VertexKey>.Default.Equals(vertex, startKey))
             {
                 distances[vertex] = default(EdgeValue)!;
-                pq.Enqueue(vertex, default(EdgeValue)!);
+                priorityQueue.Enqueue(vertex, default(EdgeValue)!);
             }
             else
             {
-                distances[vertex] = GetMaxValue();
+                distances[vertex] = maxValue;
             }
         }
 
-        while (pq.Count > 0)
+        while (priorityQueue.Count > 0)
         {
-            var current = pq.Dequeue();
+            var current = priorityQueue.Dequeue();
             if (visited.Contains(current))
                 continue;
 
@@ -123,12 +127,41 @@ public class GenGraph<VertexKey, VertexValue, EdgeValue> where EdgeValue : IComp
                 if (Less(newDistance, distances[neighbor.Key]))
                 {
                     distances[neighbor.Key] = newDistance;
-                    pq.Enqueue(neighbor.Key, newDistance);
+                    Predecessors[neighbor.Key] = current;
+                    priorityQueue.Enqueue(neighbor.Key, newDistance);
                 }
             }
         }
 
-        return distances;
-    }
+        // Rekonstrukce cest s vynecháním nedosažitelných vrcholů
+        var paths = new Dictionary<VertexKey, (EdgeValue Distance, List<VertexKey> Path)>();
+        foreach (var vertex in distances.Keys)
+        {
+            if (EqualityComparer<EdgeValue>.Default.Equals(distances[vertex], maxValue))
+                continue; // Nedosažitelný vrchol neukládáme
 
+            var path = new List<VertexKey>();
+            var current = vertex;
+            while (Predecessors.ContainsKey(current))
+            {
+                path.Add(current);
+                current = Predecessors[current];
+            }
+            path.Add(startKey);
+            path.Reverse();
+            paths[vertex] = (distances[vertex], path);
+        }
+
+        return paths;
+    }
+    public void PrintPredecessors()
+    {
+        int columnWidth = 4;
+
+        var vertices = string.Join("", Predecessors.Keys.Select(k => k.ToString().PadRight(columnWidth)));
+        var predecessors = string.Join("", Predecessors.Values.Select(v => v.ToString().PadRight(columnWidth)));
+
+        Console.WriteLine("Vrcholy:    " + vertices);
+        Console.WriteLine("Předchůdci: " + predecessors);
+    }
 }
