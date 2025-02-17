@@ -245,12 +245,12 @@ public class GenericGraphTests
         var startVertex = "E";
 
         // Přidání vrcholů
-        graph.AddVertex("A", "Město A");
-        graph.AddVertex("B", "Město B");
-        graph.AddVertex("C", "Město C");
-        graph.AddVertex("D", "Město D");
-        graph.AddVertex("E", "Město E");
-        graph.AddVertex("F", "Město F");
+        graph.AddVertex("A", "A");
+        graph.AddVertex("B", "B");
+        graph.AddVertex("C", "C");
+        graph.AddVertex("D", "D");
+        graph.AddVertex("E", "E");
+        graph.AddVertex("F", "F");
 
         // Přidání hran
         graph.AddEdge("A", "B", 4);

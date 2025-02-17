@@ -5,42 +5,8 @@ internal class Program
 
     public static void Main(string[] args)
     {
-        // Vytvoření instance grafu
-        var graph = new GenericGraph<string, string, int>();
-        var startVertex = "E";
-
-        graph.AddVertex("A", "Město A");
-        graph.AddVertex("B", "Město B");
-        graph.AddVertex("C", "Město C");
-        graph.AddVertex("D", "Město D");
-        graph.AddVertex("E", "Město E");
-        graph.AddVertex("F", "Město F");
-
-        graph.AddEdge("A", "B", 4);
-        graph.AddEdge("A", "C", 2);
-        graph.AddEdge("B", "D", 3);
-        graph.AddEdge("C", "D", 1);
-        graph.AddEdge("C", "E", 5);
-        graph.AddEdge("D", "E", 4);
-        graph.AddEdge("E", "F", 4);
-
-        graph.ChangeAccessibility("B", "D");
-        graph.ChangeAccessibility("D", "E");
-
-        //var result = graph.FindShortestPaths(startVertex);
-        //Console.WriteLine("Původní graf");
-        //graph.PrintGraph();
-
-        //Console.WriteLine($"Sousedi nejkratších cest od bodu {startVertex}");
-        //graph.PrintPredecessors();
-
-
-        //var graph = GenerateGraph();
+        var graph = GenerateGraph();
         graph.PrintGraph();
-        var shortestPaths = graph.FindShortestPathsFromVertex(startVertex);
-        ProcessShortestPaths(startVertex, shortestPaths);
-
-        graph.PrintPredecessors();
     }
 
     public static GenericGraph<string, string, int> GenerateGraph()
