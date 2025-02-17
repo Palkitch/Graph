@@ -83,65 +83,67 @@ public class GenericGraph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEd
     }
     private VEdge Add(VEdge a, VEdge b) => a + b;
     private bool Less(VEdge a, VEdge b) => a.CompareTo(b) < 0;
+
     public Dictionary<KVertex, (VEdge Distance, List<KVertex> Path)> FindShortestPathsFromVertex(KVertex startKey)
     {
-        var distances = new Dictionary<KVertex, VEdge>();
-        Predecessors = new Dictionary<KVertex, KVertex>();
-        var visited = new HashSet<KVertex>();
-        var priorityQueue = new PriorityQueue<KVertex, VEdge>();
+        var distances = new Dictionary<KVertex, VEdge>(); // Ukládá nejkratší vzdálenosti od startovního vrcholu
+        var paths = new Dictionary<KVertex, List<KVertex>>(); // Ukládá nejkratší cesty pro každý vrchol
+        Predecessors = new Dictionary<KVertex, KVertex>(); // Ukládá předchůdce každého vrcholu
+        var visited = new HashSet<KVertex>(); // Množina navštívených vrcholů
+        var priorityQueue = new PriorityQueue<KVertex, VEdge>(); // Prioritní fronta pro zpracování vrcholů podle nejmenší vzdálenosti
 
-        var maxValue = GetMaxValue();
+        var maxValue = GetMaxValue(); // Maximální možná hodnota pro typ hrany
 
+        // Inicializace vzdáleností a cest
         foreach (var vertex in vertices.Keys)
         {
             distances[vertex] = EqualityComparer<KVertex>.Default.Equals(vertex, startKey) ? default! : maxValue;
+            paths[vertex] = new List<KVertex>(); // Inicializujeme prázdnou cestu
         }
+
+        paths[startKey].Add(startKey); // Startovní vrchol je sám sobě cestou
         priorityQueue.Enqueue(startKey, default!);
 
         while (priorityQueue.Count > 0)
         {
-            var current = priorityQueue.Dequeue();
-            if (visited.Contains(current)) continue;
-            visited.Add(current);
+            var current = priorityQueue.Dequeue(); // Odebereme vrchol s nejmenší vzdáleností
+            if (visited.Contains(current)) continue; // Pokud už byl navštíven, přeskočíme ho
+            visited.Add(current); // Označíme ho jako navštívený
 
+            // Procházíme všechny přístupné sousedy aktuálního vrcholu
             foreach (var edge in GetNeighbors(current))
             {
-                if (visited.Contains(edge.To)) continue;
-                var newDistance = Add(distances[current], edge.Weight);
+                if (visited.Contains(edge.To)) continue; // Pokud byl soused už navštíven, přeskočíme ho
+                var newDistance = Add(distances[current], edge.Weight); // Spočítáme novou vzdálenost přes tento vrchol
+
+                // Pokud je nová vzdálenost kratší než dosavadní známá, aktualizujeme ji
                 if (Less(newDistance, distances[edge.To]))
                 {
                     distances[edge.To] = newDistance;
-                    Predecessors[edge.To] = current;
-                    priorityQueue.Enqueue(edge.To, newDistance);
+                    Predecessors[edge.To] = current; // Uložíme aktuální vrchol jako předchůdce
+
+                    // Sestavíme novou nejkratší cestu pro tento vrchol
+                    paths[edge.To] = new List<KVertex>(paths[current]) { edge.To };
+
+                    priorityQueue.Enqueue(edge.To, newDistance); // Přidáme souseda do prioritní fronty
                 }
             }
         }
 
-        return BuildPaths(distances, startKey);
-    }
-    private Dictionary<KVertex, (VEdge Distance, List<KVertex> Path)> BuildPaths(Dictionary<KVertex, VEdge> distances, KVertex source)
-    {
-        var paths = new Dictionary<KVertex, (VEdge Distance, List<KVertex> Path)>();
-        var maxValue = GetMaxValue();
-
+        // Sestavíme výstupní strukturu kombinující vzdálenosti a cesty
+        var result = new Dictionary<KVertex, (VEdge Distance, List<KVertex> Path)>();
         foreach (var vertex in distances.Keys)
         {
-            if (EqualityComparer<VEdge>.Default.Equals(distances[vertex], maxValue))
-                continue; // Izolovaný vrchol ignorujeme
-
-            var path = new List<KVertex>();
-            var current = vertex;
-            while (Predecessors.ContainsKey(current))
+            if (!EqualityComparer<VEdge>.Default.Equals(distances[vertex], maxValue)) // Ignorujeme izolované vrcholy
             {
-                path.Add(current);
-                current = Predecessors[current];
+                result[vertex] = (distances[vertex], paths[vertex]);
             }
-            path.Add(source);
-            path.Reverse();
-            paths[vertex] = (distances[vertex], path);
         }
-        return paths;
+
+        return result;
     }
+
+
     #endregion
     #region Print methods
     public void PrintGraph()

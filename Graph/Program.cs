@@ -2,11 +2,12 @@
 
 internal class Program
 {
-    private static void Main(string[] args)
+
+    public static void Main(string[] args)
     {
         // Vytvoření instance grafu
         var graph = new GenericGraph<string, string, int>();
-        var startVertex = "A";
+        var startVertex = "E";
 
         graph.AddVertex("A", "Město A");
         graph.AddVertex("B", "Město B");
@@ -16,15 +17,15 @@ internal class Program
         graph.AddVertex("F", "Město F");
 
         graph.AddEdge("A", "B", 4);
-        graph.ChangeAccessibility("A", "B");
         graph.AddEdge("A", "C", 2);
         graph.AddEdge("B", "D", 3);
         graph.AddEdge("C", "D", 1);
-        graph.ChangeAccessibility("C", "D");
         graph.AddEdge("C", "E", 5);
         graph.AddEdge("D", "E", 4);
         graph.AddEdge("E", "F", 4);
 
+        graph.ChangeAccessibility("B", "D");
+        graph.ChangeAccessibility("D", "E");
 
         //var result = graph.FindShortestPaths(startVertex);
         //Console.WriteLine("Původní graf");
@@ -72,7 +73,7 @@ internal class Program
     }
     static void ProcessShortestPaths(string startVertex, Dictionary<string, (int Distance, List<string> Path)> shortestPaths)
     {
-        Console.WriteLine($"Nejkratší cesty do {startVertex}:");
+        Console.WriteLine($"Nejkratší cesty z {startVertex}:");
         foreach (var kvp in shortestPaths)
         {
             Console.WriteLine($"Cíl: {kvp.Key}, Vzdálenost: {kvp.Value.Distance}, Cesta: {string.Join(" -> ", kvp.Value.Path)}");

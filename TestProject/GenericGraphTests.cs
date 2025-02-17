@@ -163,7 +163,7 @@ public class GenericGraphTests
         Assert.IsFalse(blockedResult.ContainsKey(2));
 
         // Opětovně povolíme hranu
-        graph.AddEdge(1, 2, 5);
+        graph.ChangeAccessibility(1, 2);
 
         var result = graph.FindShortestPathsFromVertex(1);
 
@@ -195,6 +195,93 @@ public class GenericGraphTests
         Assert.IsFalse(result.ContainsKey(4)); // Izolovaný vrchol zůstává izolovaný
     }
 
+    [TestMethod]
+    public void TestFindShortestPathsPredecessors()
+    {
+        // Vytvoření instance grafu
+        var graph = new GenericGraph<string, string, int>();
+        var startVertex = "E";
 
+        // Přidání vrcholů
+        graph.AddVertex("A", "Město A");
+        graph.AddVertex("B", "Město B");
+        graph.AddVertex("C", "Město C");
+        graph.AddVertex("D", "Město D");
+        graph.AddVertex("E", "Město E");
+        graph.AddVertex("F", "Město F");
+
+        // Přidání hran
+        graph.AddEdge("A", "B", 4);
+        graph.AddEdge("A", "C", 2);
+        graph.AddEdge("B", "D", 3);
+        graph.AddEdge("C", "D", 1);
+        graph.AddEdge("C", "E", 5);
+        graph.AddEdge("D", "E", 4);
+        graph.AddEdge("E", "F", 4);
+
+        // Zavolání metody pro nalezení nejkratších cest
+        graph.FindShortestPathsFromVertex(startVertex);
+
+        // Očekávaný slovník předchůdců
+        var expectedPredecessors = new Dictionary<string, string>
+        {
+            { "C", "E" },
+            { "D", "E" },
+            { "F", "E" },
+            { "B", "D" },
+            { "A", "C" }
+        };
+
+        // Porovnání skutečného a očekávaného slovníku
+        foreach (var key in expectedPredecessors.Keys)
+        {
+            Assert.AreEqual(expectedPredecessors[key], graph.Predecessors[key], $"Test selhal pro vrchol {key}. Očekávaný předchůdce: {expectedPredecessors[key]}, skutečný: {graph.Predecessors[key]}");
+        }
+    }
+    [TestMethod]
+    public void TestFindShortestPathsPredecessorsWithUnacessiblePaths()
+    {
+        var graph = new GenericGraph<string, string, int>();
+        var startVertex = "E";
+
+        // Přidání vrcholů
+        graph.AddVertex("A", "Město A");
+        graph.AddVertex("B", "Město B");
+        graph.AddVertex("C", "Město C");
+        graph.AddVertex("D", "Město D");
+        graph.AddVertex("E", "Město E");
+        graph.AddVertex("F", "Město F");
+
+        // Přidání hran
+        graph.AddEdge("A", "B", 4);
+        graph.AddEdge("A", "C", 2);
+        graph.AddEdge("B", "D", 3);
+        graph.AddEdge("C", "D", 1);
+        graph.AddEdge("C", "E", 5);
+        graph.AddEdge("D", "E", 4);
+        graph.AddEdge("E", "F", 4);
+
+        graph.ChangeAccessibility("B", "D");
+        graph.ChangeAccessibility("D", "E");
+
+        // Zavolání metody pro nalezení nejkratších cest
+        graph.FindShortestPathsFromVertex(startVertex);
+
+        // Očekávaný slovník předchůdců
+        var expectedPredecessors = new Dictionary<string, string>
+        {
+            { "C", "E" },
+            { "F", "E" },
+            { "A", "C" },
+            { "D", "C" },
+            { "B", "A" }
+        };
+
+        // Porovnání skutečného a očekávaného slovníku
+        foreach (var key in expectedPredecessors.Keys)
+        {
+            Assert.AreEqual(expectedPredecessors[key], graph.Predecessors[key], $"Test selhal pro vrchol {key}. Očekávaný předchůdce: {expectedPredecessors[key]}, skutečný: {graph.Predecessors[key]}");
+        }
+    }
 
 }
