@@ -1,13 +1,15 @@
-﻿
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Reflection;
+
 [TestClass]
 public class GenericGraphTests
 {
-    private GenericGraph<int, string, int> graph;
+    private Graph<int, string, int> graph;
 
     [TestInitialize]
     public void SetUp()
     {
-        graph = new GenericGraph<int, string, int>();
+        graph = new Graph<int, string, int>();
     }
 
     [TestMethod]
@@ -199,7 +201,7 @@ public class GenericGraphTests
     public void TestFindShortestPathsPredecessors()
     {
         // Vytvoření instance grafu
-        var graph = new GenericGraph<string, string, int>();
+        var graph = new Graph<string, string, int>();
         var startVertex = "E";
 
         // Přidání vrcholů
@@ -241,7 +243,7 @@ public class GenericGraphTests
     [TestMethod]
     public void TestFindShortestPathsPredecessorsWithUnacessiblePaths()
     {
-        var graph = new GenericGraph<string, string, int>();
+        var graph = new Graph<string, string, int>();
         var startVertex = "E";
 
         // Přidání vrcholů
@@ -283,5 +285,35 @@ public class GenericGraphTests
             Assert.AreEqual(expectedPredecessors[key], graph.Predecessors[key], $"Test selhal pro vrchol {key}. Očekávaný předchůdce: {expectedPredecessors[key]}, skutečný: {graph.Predecessors[key]}");
         }
     }
+   
+
+    [TestMethod]
+    public void TestGetMaxValue()
+    {
+        var graph = new Graph<int, string, int>();
+
+        // Reflexe pro přístup k privátní metodě
+        Type type = typeof(Graph<int, string, int>);
+        MethodInfo method = type.GetMethod("GetMaxValue", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        // Zavolání privátní metody
+        int result = (int)method.Invoke(graph, null);
+
+        // Očekáváme int.MaxValue
+        Assert.AreEqual(int.MaxValue, result);
+    }
+    [TestMethod]
+    public void TestRemoveEdge_Failure()
+    {
+        var graph = new Graph<int, string, int>();
+
+        graph.AddVertex(1, "A");
+        graph.AddVertex(2, "B");
+
+        // Hrana mezi 1 a 2 neexistuje, takže removeEdge by měl vrátit false
+        bool removed = graph.RemoveEdge(1, 3);
+        Assert.IsFalse(removed, "Removing a non-existent edge should return false");
+    }
+
 
 }
