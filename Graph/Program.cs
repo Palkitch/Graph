@@ -23,18 +23,20 @@ internal class Program
 
     public static void Main(string[] args)
     {
+        var graph = GrafZadani();
+        var startVertex = 'x';
 
-        var graph = GenerateGraph();
-        graph.PrintGraph();
-        var path = graph.FindShortestPathsFromVertex("BB");
-        ProcessShortestPaths("BB", path);
-        graph.PrintPredecessors();
+        graph.FindShortestPathsFromVertex(startVertex);
+
+        graph.Vypis();
     }
+
+
 
     public static GraphWithDijkstra<string, string, int> GenerateGraph()
     {
         var graph = new GraphWithDijkstra<string, string, int>();
-        var random = new Random(1);
+        var random = new Random();
         var vertices = new List<string>();
 
         // Generování 50 vrcholů
@@ -59,7 +61,7 @@ internal class Program
         }
         return graph;
     }
-    static void ProcessShortestPaths(string startVertex, Dictionary<string, (int Distance, List<string> Path)> shortestPaths)
+    static void ProcessShortestPaths(string startVertex, Dictionary<char, (int Distance, List<char> Path)> shortestPaths)
     {
         Console.WriteLine($"Nejkratší cesty z {startVertex}:");
         foreach (var kvp in shortestPaths)
@@ -83,5 +85,46 @@ internal class Program
 
         graph.PrintGraph();
         graph.PrintPredecessors();
+    }
+    static GraphWithDijkstra<char, string, int> GrafZadani()
+    {
+        var graph = new GraphWithDijkstra<char, string, int>();
+        graph.AddVertex('x', "Mesto X");
+        graph.AddVertex('i', "Mesto I");
+        graph.AddVertex('a', "Mesto A");
+        graph.AddVertex('m', "Mesto M");
+        graph.AddVertex('g', "Mesto G");
+        graph.AddVertex('u', "Mesto U");
+        graph.AddVertex('s', "Mesto S");
+        graph.AddVertex('k', "Mesto K");
+        graph.AddVertex('t', "Mesto T");
+        graph.AddVertex('n', "Mesto N");
+        graph.AddVertex('z', "Mesto Z");
+        graph.AddVertex('p', "Mesto P");
+        graph.AddVertex('r', "Mesto R");
+        graph.AddVertex('f', "Mesto F");
+        graph.AddVertex('w', "Mesto W");
+
+        graph.AddEdge('s', 'i', 3);
+        graph.AddEdge('s', 'a', 8);
+        graph.AddEdge('x', 'i', 6);
+        graph.AddEdge('x', 'a', 3);
+        graph.AddEdge('x', 'm', 8);
+        graph.AddEdge('x', 'g', 8);
+        graph.AddEdge('x', 'u', 10);
+        graph.AddEdge('g', 'm', 1);
+        graph.AddEdge('g', 'u', 15);
+        graph.AddEdge('k', 'a', 7);
+        graph.AddEdge('k', 's', 10);
+        graph.AddEdge('n', 'f', 5);
+        graph.AddEdge('n', 'r', 6);
+        graph.AddEdge('p', 'w', 1);
+        graph.AddEdge('p', 'n', 4);
+        graph.AddEdge('g', 't', 12);
+        graph.AddEdge('n', 't', 3);
+        graph.AddEdge('z', 'k', 2);
+
+        return graph;
+
     }
 }
