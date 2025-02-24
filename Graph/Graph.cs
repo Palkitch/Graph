@@ -30,6 +30,34 @@ public abstract class Graph<KVertex, VVertex, VEdge> where VEdge : IComparable<V
             Value = value;
         }
     }
+    public List<KVertex> GetVertices()
+    {
+        return vertices.Keys.ToList();
+    }
+    public List<string> GetEdgesAsString()
+    {
+        var edges = new List<string>();
+        var printedEdges = new HashSet<(KVertex, KVertex)>();
+
+        foreach (var vertex in vertices)
+        {
+            foreach (var edge in vertex.Value.Edges)
+            {
+                var edgePair = (edge.From, edge.To);
+                var reverseEdgePair = (edge.To, edge.From);
+
+                if (!printedEdges.Contains(edgePair) && !printedEdges.Contains(reverseEdgePair))
+                {
+                    edges.Add($"{edge.From} <-> {edge.To}");
+                    printedEdges.Add(edgePair);
+                }
+            }
+        }
+
+        return edges;
+    }
+
+
 
     #region Edge/Vertex methods
     public bool AddVertex(KVertex key, VVertex value)
@@ -38,7 +66,6 @@ public abstract class Graph<KVertex, VVertex, VEdge> where VEdge : IComparable<V
         vertices[key] = new Vertex(key, value);
         return true;
     }
-
     public bool AddEdge(KVertex from, KVertex to, VEdge weight)
     {
         if (!vertices.ContainsKey(from) || !vertices.ContainsKey(to) || from.Equals(to))
@@ -59,7 +86,6 @@ public abstract class Graph<KVertex, VVertex, VEdge> where VEdge : IComparable<V
         vertices[to].Edges.Add(new Edge<KVertex, VEdge>(to, from, weight));
         return true;
     }
-
     public bool ChangeAccessibility(KVertex from, KVertex to)
     {
         if (!vertices.ContainsKey(from) || !vertices.ContainsKey(to)) return false;
@@ -72,7 +98,6 @@ public abstract class Graph<KVertex, VVertex, VEdge> where VEdge : IComparable<V
 
         return edgeFrom != null && edgeTo != null;
     }
-
     public bool RemoveEdge(KVertex from, KVertex to)
     {
         if (!vertices.ContainsKey(from) || !vertices.ContainsKey(to)) return false;
@@ -81,18 +106,39 @@ public abstract class Graph<KVertex, VVertex, VEdge> where VEdge : IComparable<V
         vertices[to].Edges.RemoveAll(e => e.To.Equals(from));
         return true;
     }
-
     public VVertex? FindVertex(KVertex key) => vertices.TryGetValue(key, out var vertex) ? vertex.Value : default;
     #endregion
-
     #region Print methods
-    public void PrintGraph()
+    public string PrintGraph()
     {
+        var result = new System.Text.StringBuilder();
+        var printedEdges = new HashSet<(KVertex, KVertex)>();
+
+        // Nejprve vypiš vrcholy
+        result.AppendLine("Vrcholy:");
         foreach (var vertex in vertices)
         {
-            Console.Write($"{vertex.Key}: ");
-            Console.WriteLine(string.Join(", ", vertex.Value.Edges.Select(e => $"{e.To} [{e.Weight}] {(e.IsAccessible ? "" : "(Blocked)")}")));
+            result.AppendLine($"{vertex.Key}: {vertex.Value.Value}");
         }
+
+        // Poté vypiš hrany
+        result.AppendLine("Hrany:");
+        foreach (var vertex in vertices)
+        {
+            foreach (var edge in vertex.Value.Edges)
+            {
+                var edgePair = (edge.From, edge.To);
+                var reverseEdgePair = (edge.To, edge.From);
+
+                if (!printedEdges.Contains(edgePair) && !printedEdges.Contains(reverseEdgePair))
+                {
+                    result.AppendLine($"{edge.From} <-> {edge.To} [{edge.Weight}] {(edge.IsAccessible ? "" : "(Blocked)")}");
+                    printedEdges.Add(edgePair);
+                }
+            }
+        }
+
+        return result.ToString();
     }
 
     #endregion

@@ -5,10 +5,12 @@ using System.Numerics;
 
 namespace Graph
 {
-    public class GraphWithDijkstra<KVertex, VVertex, VEdge> : Graph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEdge>, INumber<VEdge>
+    public class DijkstraGraph<KVertex, VVertex, VEdge> : Graph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEdge>, INumber<VEdge>
     {
         public Dictionary<KVertex, KVertex> Predecessors { get; private set; }
-        private KVertex startVertex;
+        private KVertex startKey;
+        private Dictionary<KVertex, (VEdge Distance, List<KVertex> Path)> shortestPaths;
+
 
         public List<KVertex> GetPath(KVertex destination)
         {
@@ -20,16 +22,16 @@ namespace Graph
             return path;
         }
 
-        public Dictionary<KVertex, (VEdge Distance, List<KVertex> Path)> FindShortestPathsFromVertex(KVertex startVertex)
+        public Dictionary<KVertex, (VEdge Distance, List<KVertex> Path)> FindShortestPaths(KVertex startKey)
         {
-            this.startVertex = startVertex;
+            this.startKey = startKey;
             Predecessors = new();
-            var distances = InitializeDistances(startVertex);
-            var paths = InitializePaths(startVertex);
+            var distances = InitializeDistances(startKey);
+            var paths = InitializePaths(startKey);
             var visited = new HashSet<KVertex>();
             var priorityQueue = new PriorityQueue<KVertex, VEdge>();
 
-            priorityQueue.Enqueue(startVertex, VEdge.Zero);
+            priorityQueue.Enqueue(startKey, VEdge.Zero);
 
             while (priorityQueue.Count > 0)
             {
@@ -52,24 +54,32 @@ namespace Graph
                 }
             }
 
-            return BuildResult(distances, paths);
+            shortestPaths = BuildResult(distances, paths);
+            return shortestPaths;
         }
 
-        public void PrintPredecessors()
+        public string PrintPredecessors()
         {
-            try
+            if (Predecessors == null || Predecessors.Count == 0)
             {
-                int columnWidth = 4;
-                var vertices = string.Join("", Predecessors.Keys.Select(k => k.ToString().PadRight(columnWidth)));
-                var predecessors = string.Join("", Predecessors.Values.Select(v => v.ToString().PadRight(columnWidth)));
+                return "Pro zobrazení matice předchůdců je potřeba nejdřív spustit algoritmus pro nalezení nejkratší cesty";
+            }
 
-                Console.WriteLine("Vrcholy:    " + vertices);
-                Console.WriteLine("Předchůdci: " + predecessors);
-            }
-            catch (NullReferenceException)
+            var startVertex = Predecessors.Keys.FirstOrDefault();
+            if (startVertex == null)
             {
-                Console.WriteLine("Pro zobrazení matice předchůdců je potřeba nejdřív spustit algoritmus pro nalezení nejkratší cesty");
+                return "Pro zobrazení matice předchůdců je potřeba nejdřív spustit algoritmus pro nalezení nejkratší cesty";
             }
+
+            int columnWidth = 4;
+            var vertices = string.Join("", Predecessors.Keys.Select(k => k.ToString().PadRight(columnWidth)));
+            var predecessors = string.Join("", Predecessors.Values.Select(v => v.ToString().PadRight(columnWidth)));
+
+            var result = new System.Text.StringBuilder();
+            result.AppendLine("Z:    " + vertices);
+            result.AppendLine($"Do {startKey}: " + predecessors);
+
+            return result.ToString();
         }
 
         private Dictionary<KVertex, VEdge> InitializeDistances(KVertex startVertex)
@@ -124,52 +134,27 @@ namespace Graph
             throw new NotSupportedException("Unsupported edge type");
         }
 
-        public void Vypis()
+        public string PrintShortestPathsTable()
         {
-            PrintMatrix();
-            Console.WriteLine();
-            PrintPredecessors();
-        }
-
-        private void PrintMatrix()
-        {
-            var shortestPathsTable = GetShortestPathsTable(startVertex);
-            int columnWidth = 4;
-
-            Console.Write("".PadRight(columnWidth));
-            foreach (var colVertex in shortestPathsTable.Keys.Where(v => !v.Equals(startVertex)))
+            //pokud se neprovedlo findShortest paths, tak tatot metoda upozorní uživatele a neprovede se 
+            if (shortestPaths == null || shortestPaths.Count == 0)
             {
-                Console.Write(colVertex.ToString().PadRight(columnWidth));
+                return "Pro zobrazení tabulky nejkratších cest je potřeba nejdřív spustit algoritmus pro nalezení nejkratší cesty";
             }
-            Console.WriteLine();
-
-            foreach (var row in shortestPathsTable)
-            {
-                Console.Write(row.Key.ToString().PadRight(columnWidth));
-                foreach (var col in row.Value.Where(c => !c.Key.Equals(startVertex)))
-                {
-                    Console.Write(col.Value.PadRight(columnWidth));
-                }
-                Console.WriteLine();
-            }
-        }
-
-        public void PrintShortestPathsTable(KVertex startKey)
-        {
-            var shortestPaths = FindShortestPathsFromVertex(startKey);
             var vertices = shortestPaths.Keys.OrderBy(k => !k.Equals(startKey)).ToList();
             int columnWidth = vertices.Max(v => v.ToString().Length) + 4;
+            var result = new System.Text.StringBuilder();
 
-            Console.Write("".PadRight(columnWidth));
+            result.Append("do".PadRight(columnWidth));
             foreach (var vertex in vertices.Where(v => !v.Equals(startKey)))
             {
-                Console.Write(vertex.ToString().PadRight(columnWidth));
+                result.Append(vertex.ToString().PadRight(columnWidth));
             }
-            Console.WriteLine();
+            result.AppendLine("\n-------------------------------------------------------------------------");
 
             foreach (var rowVertex in vertices)
             {
-                Console.Write(rowVertex.ToString().PadRight(columnWidth));
+                result.Append(("z " + rowVertex.ToString()).PadRight(columnWidth));
                 foreach (var colVertex in vertices.Where(v => !v.Equals(startKey)))
                 {
                     if (shortestPaths.ContainsKey(colVertex) && shortestPaths[colVertex].Path.Count > 1)
@@ -179,59 +164,23 @@ namespace Graph
 
                         if (index != -1 && index < path.Count - 1)
                         {
-                            Console.Write(path[index + 1].ToString().PadRight(columnWidth));
+                            result.Append(path[index + 1].ToString().PadRight(columnWidth));
                         }
                         else
                         {
-                            Console.Write("".PadRight(columnWidth));
+                            result.Append("-".PadRight(columnWidth));
                         }
                     }
                     else
                     {
-                        Console.Write("".PadRight(columnWidth));
+                        result.Append("-".PadRight(columnWidth));
                     }
                 }
-                Console.WriteLine();
-            }
-        }
-
-        public Dictionary<KVertex, Dictionary<KVertex, string>> GetShortestPathsTable(KVertex startKey)
-        {
-            var shortestPaths = FindShortestPathsFromVertex(startKey);
-            var vertices = shortestPaths.Keys.OrderBy(k => !k.Equals(startKey)).ToList();
-            var table = new Dictionary<KVertex, Dictionary<KVertex, string>>();
-
-            foreach (var rowVertex in vertices)
-            {
-                table[rowVertex] = new Dictionary<KVertex, string>();
-                foreach (var colVertex in vertices)
-                {
-                    if (rowVertex.Equals(colVertex))
-                    {
-                        table[rowVertex][colVertex] = "";
-                    }
-                    else if (shortestPaths.ContainsKey(colVertex) && shortestPaths[colVertex].Path.Count > 1)
-                    {
-                        var path = shortestPaths[colVertex].Path;
-                        int index = path.IndexOf(rowVertex);
-
-                        if (index != -1 && index < path.Count - 1)
-                        {
-                            table[rowVertex][colVertex] = path[index + 1].ToString();
-                        }
-                        else
-                        {
-                            table[rowVertex][colVertex] = "";
-                        }
-                    }
-                    else
-                    {
-                        table[rowVertex][colVertex] = "";
-                    }
-                }
+                result.AppendLine();
             }
 
-            return table;
+            return result.ToString();
         }
+
     }
 }

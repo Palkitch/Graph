@@ -1,7 +1,7 @@
 ﻿using Graph;
 using System.Globalization;
 
-internal class Program
+public class Program
 {
     public struct Coordinate
     {
@@ -23,19 +23,18 @@ internal class Program
 
     public static void Main(string[] args)
     {
-        var graph = GrafZadani();
-        var startVertex = 'x';
+        //var graph = GrafZadani();
+        //Console.WriteLine(graph.PrintGraph());
+        //graph.FindShortestPathsFromVertex('x');
+        //Console.WriteLine(graph.PrintShortestPathsTable('x'));
 
-        graph.FindShortestPathsFromVertex(startVertex);
-
-        graph.Vypis();
     }
 
 
 
-    public static GraphWithDijkstra<string, string, int> GenerateGraph()
+    public static DijkstraGraph<string, string, int> GenerateGraph()
     {
-        var graph = new GraphWithDijkstra<string, string, int>();
+        var graph = new DijkstraGraph<string, string, int>();
         var random = new Random();
         var vertices = new List<string>();
 
@@ -71,7 +70,7 @@ internal class Program
     }
     static void CreateCoordinateGraph()
     {
-        var graph = new GraphWithDijkstra<Coordinate, string, int>();
+        var graph = new DijkstraGraph<Coordinate, string, int>();
         Coordinate c1 = new Coordinate(0, 0);
         Coordinate c2 = new Coordinate(1, 0);
         Coordinate c3 = new Coordinate(1, 2);
@@ -86,43 +85,43 @@ internal class Program
         graph.PrintGraph();
         graph.PrintPredecessors();
     }
-    static GraphWithDijkstra<char, string, int> GrafZadani()
+    public DijkstraGraph<string, string, int> GrafZadani()
     {
-        var graph = new GraphWithDijkstra<char, string, int>();
-        graph.AddVertex('x', "Mesto X");
-        graph.AddVertex('i', "Mesto I");
-        graph.AddVertex('a', "Mesto A");
-        graph.AddVertex('m', "Mesto M");
-        graph.AddVertex('g', "Mesto G");
-        graph.AddVertex('u', "Mesto U");
-        graph.AddVertex('s', "Mesto S");
-        graph.AddVertex('k', "Mesto K");
-        graph.AddVertex('t', "Mesto T");
-        graph.AddVertex('n', "Mesto N");
-        graph.AddVertex('z', "Mesto Z");
-        graph.AddVertex('p', "Mesto P");
-        graph.AddVertex('r', "Mesto R");
-        graph.AddVertex('f', "Mesto F");
-        graph.AddVertex('w', "Mesto W");
+        var graph = new DijkstraGraph<string, string, int>();
+        graph.AddVertex("x", "Mesto X");
+        graph.AddVertex("i", "Mesto I");
+        graph.AddVertex("a", "Mesto A");
+        graph.AddVertex("m", "Mesto M");
+        graph.AddVertex("g", "Mesto G");
+        graph.AddVertex("u", "Mesto U");
+        graph.AddVertex("s", "Mesto S");
+        graph.AddVertex("k", "Mesto K");
+        graph.AddVertex("t", "Mesto T");
+        graph.AddVertex("n", "Mesto N");
+        graph.AddVertex("z", "Mesto Z");
+        graph.AddVertex("p", "Mesto P");
+        graph.AddVertex("r", "Mesto R");
+        graph.AddVertex("f", "Mesto F");
+        graph.AddVertex("w", "Mesto W");
 
-        graph.AddEdge('s', 'i', 3);
-        graph.AddEdge('s', 'a', 8);
-        graph.AddEdge('x', 'i', 6);
-        graph.AddEdge('x', 'a', 3);
-        graph.AddEdge('x', 'm', 8);
-        graph.AddEdge('x', 'g', 8);
-        graph.AddEdge('x', 'u', 10);
-        graph.AddEdge('g', 'm', 1);
-        graph.AddEdge('g', 'u', 15);
-        graph.AddEdge('k', 'a', 7);
-        graph.AddEdge('k', 's', 10);
-        graph.AddEdge('n', 'f', 5);
-        graph.AddEdge('n', 'r', 6);
-        graph.AddEdge('p', 'w', 1);
-        graph.AddEdge('p', 'n', 4);
-        graph.AddEdge('g', 't', 12);
-        graph.AddEdge('n', 't', 3);
-        graph.AddEdge('z', 'k', 2);
+        graph.AddEdge("s", "i", 3);
+        graph.AddEdge("s", "a", 8);
+        graph.AddEdge("x", "i", 6);
+        graph.AddEdge("x", "a", 3);
+        graph.AddEdge("x", "m", 8);
+        graph.AddEdge("x", "g", 8);
+        graph.AddEdge("x", "u", 10);
+        graph.AddEdge("g", "m", 1);
+        graph.AddEdge("g", "u", 15);
+        graph.AddEdge("k", "a", 7);
+        graph.AddEdge("k", "s", 10);
+        graph.AddEdge("n", "f", 5);
+        graph.AddEdge("n", "r", 6);
+        graph.AddEdge("p", "w", 1);
+        graph.AddEdge("p", "n", 4);
+        graph.AddEdge("g", "t", 12);
+        graph.AddEdge("n", "t", 3);
+        graph.AddEdge("z", "k", 2);
 
         return graph;
 
