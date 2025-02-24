@@ -23,10 +23,9 @@ public class Program
 
     public static void Main(string[] args)
     {
-        //var graph = GrafZadani();
-        //Console.WriteLine(graph.PrintGraph());
-        //graph.FindShortestPathsFromVertex('x');
-        //Console.WriteLine(graph.PrintShortestPathsTable('x'));
+        var graph = GenerateGraph();
+        Console.WriteLine(graph.PrintGraph());
+        graph.PrintGraph();
 
     }
 

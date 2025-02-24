@@ -1,4 +1,7 @@
 ﻿using Graph;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Text.Json;
 using System.Windows;
 
 namespace GraphGUI
@@ -12,9 +15,63 @@ namespace GraphGUI
         {
             graph = p.GrafZadani();
             InitializeComponent();
+            //SaveGraphToFile("grafy/graf.txt");
+            //LoadGraphFromFile("grafy/graf.txt");
             StartVertexComboBox.ItemsSource = graph.GetVertices();
             UpdateEdgeComboBox();
         }
+
+        private void SaveGraphToFile(string filePath)
+        {
+            try
+            {
+                string graphData = graph.PrintRawGraph();
+                File.WriteAllText(filePath, graphData);
+                MessageTextBox.Text = "Graf byl úspěšně uložen do souboru.";
+            }
+            catch (Exception ex)
+            {
+                MessageTextBox.Text = $"Chyba při ukládání grafu: {ex.Message}";
+            }
+        }
+        private void LoadGraphFromFile(string filePath)
+        {
+            try
+            {
+                graph = new DijkstraGraph<string, string, int>();
+
+                string[] lines = File.ReadAllLines(filePath);
+                foreach (var line in lines)
+                {
+                    var parts = line.Split(',');
+                    if (parts[0] == "V")
+                    {
+                        // Načíst vrchol
+                        graph.AddVertex(parts[1], parts[2]);
+                    }
+                    else if (parts[0] == "E")
+                    {
+                        // Načíst hranu
+                        var from = parts[1];
+                        var to = parts[2];
+                        var weight = int.Parse(parts[3]);
+                        var isAccessible = bool.Parse(parts[4]);
+                        graph.AddEdge(from, to, weight);
+                        if (!isAccessible)
+                        {
+                            graph.ChangeAccessibility(from, to);
+                        }
+                    }
+                }
+                MessageTextBox.Text = "Graf byl úspěšně načten ze souboru.";
+            }
+            catch (Exception ex)
+            {
+                MessageTextBox.Text = $"Chyba při načítání grafu: {ex.Message}";
+            }
+        }
+
+
 
         private void AddVertexButton_Click(object sender, RoutedEventArgs e)
         {

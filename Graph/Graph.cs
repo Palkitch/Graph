@@ -57,8 +57,6 @@ public abstract class Graph<KVertex, VVertex, VEdge> where VEdge : IComparable<V
         return edges;
     }
 
-
-
     #region Edge/Vertex methods
     public bool AddVertex(KVertex key, VVertex value)
     {
@@ -140,6 +138,35 @@ public abstract class Graph<KVertex, VVertex, VEdge> where VEdge : IComparable<V
 
         return result.ToString();
     }
+    public string PrintRawGraph()
+    {
+        var result = new System.Text.StringBuilder();
+        var printedEdges = new HashSet<(KVertex, KVertex)>();
 
-    #endregion
+        // Nejprve vypiš vrcholy
+        foreach (var vertex in vertices)
+        {
+            result.AppendLine($"V,{vertex.Key},{vertex.Value.Value}");
+        }
+
+        // Poté vypiš hrany
+        foreach (var vertex in vertices)
+        {
+            foreach (var edge in vertex.Value.Edges)
+            {
+                var edgePair = (edge.From, edge.To);
+                var reverseEdgePair = (edge.To, edge.From);
+
+                if (!printedEdges.Contains(edgePair) && !printedEdges.Contains(reverseEdgePair))
+                {
+                    result.AppendLine($"E,{edge.From},{edge.To},{edge.Weight},{edge.IsAccessible}");
+                    printedEdges.Add(edgePair);
+                }
+            }
+        }
+
+        return result.ToString();
+    }
+
 }
+#endregion
