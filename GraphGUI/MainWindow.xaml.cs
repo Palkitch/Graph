@@ -9,14 +9,12 @@ namespace GraphGUI
     public partial class MainWindow : Window
     {
         private DijkstraGraph<string, string, int> graph = new DijkstraGraph<string, string, int>();
-        private Program p = new Program();
 
         public MainWindow()
         {
-            graph = p.GrafZadani();
             InitializeComponent();
-            //SaveGraphToFile("grafy/graf.txt");
-            //LoadGraphFromFile("grafy/graf.txt");
+            LoadGraphFromFile("grafy/graphZadani.txt");
+            //LoadGraphFromFile("grafy/randomGraph.txt");
             StartVertexComboBox.ItemsSource = graph.GetVertices();
             UpdateEdgeComboBox();
         }
@@ -70,9 +68,6 @@ namespace GraphGUI
                 MessageTextBox.Text = $"Chyba při načítání grafu: {ex.Message}";
             }
         }
-
-
-
         private void AddVertexButton_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new Window
