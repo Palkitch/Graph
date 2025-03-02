@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
-public abstract class Graph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEdge>, INumber<VEdge>
+public class Graph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEdge>, INumber<VEdge>
 {
     protected readonly Dictionary<KVertex, Vertex> vertices = new();
     protected class Edge<KVertex, VEdge> where VEdge : IComparable<VEdge>, INumber<VEdge>

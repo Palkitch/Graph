@@ -9,6 +9,7 @@ namespace GraphGUI
     public partial class MainWindow : Window
     {
         private DijkstraGraph<string, string, int> graph = new DijkstraGraph<string, string, int>();
+        private GridIndex<string> gridIndex = new GridIndex<string>();
 
         public MainWindow()
         {
