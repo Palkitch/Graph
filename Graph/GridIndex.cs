@@ -3,15 +3,15 @@
 public class GridIndex<T>
 {
     private readonly Dictionary<(int, int), List<T>> grid = new();
-    private readonly List<int> xLines;
-    private readonly List<int> yLines;
+    private readonly List<int> horizontalLines;
+    private readonly List<int> verticalLines;
     private bool drawVerticalLine = true;
     private (int x, int y)? previousPoint = null;
 
     public GridIndex(int maximumX, int maximumY)
     {
-        xLines = new List<int> { 0, maximumX };
-        yLines = new List<int> { 0, maximumY };
+        horizontalLines = new List<int> { 0, maximumX };
+        verticalLines = new List<int> { 0, maximumY };
     }
 
     public void AddPoint(int x, int y, T value)
@@ -26,8 +26,8 @@ public class GridIndex<T>
         if (previousPoint.HasValue)
         {
             var (prevX, prevY) = previousPoint.Value;
-            var nearestXLines = GetNearestLines(xLines, y);
-            var nearestYLines = GetNearestLines(yLines, x);
+            var nearestXLines = GetNearestLines(horizontalLines, y);
+            var nearestYLines = GetNearestLines(verticalLines, x);
             int pointsCount = PointsCountBetweenExactLines(nearestXLines.left, nearestXLines.right, nearestYLines.left, nearestYLines.right);
 
             if (pointsCount > 1)
@@ -37,6 +37,28 @@ public class GridIndex<T>
         }
         previousPoint = (x, y);
     }
+
+    public T FindPointBetweenLines(int x, int y)
+    {
+        // Najdeme čáry na ose X a Y, mezi kterými se bod nachází
+        var nearestXLines = GetNearestLines(horizontalLines, y);
+        var nearestYLines = GetNearestLines(verticalLines, x);
+
+        // Zjistíme, jestli existuje bod mezi těmito čárami
+        var point = grid.Keys
+            .FirstOrDefault(k => k.Item1 > nearestXLines.left && k.Item1 < nearestXLines.right
+                                 && k.Item2 > nearestYLines.left && k.Item2 < nearestYLines.right);
+
+        if (point.Equals(default((int, int))))
+        {
+            // Pokud žádný bod nenalezen, vrátíme null nebo nějaký jiný indikátor, že bod neexistuje
+            return default(T);
+        }
+
+        // Pokud jsme našli bod, vrátíme jeho hodnotu
+        return grid[point].FirstOrDefault();
+    }
+
 
     /*
      public void AddPoint(int x, int y, T value) Add poinbt který přidává čáry mezi nejbližší body v oblasti
@@ -78,28 +100,25 @@ public class GridIndex<T>
         return (left, right);
     }
 
-
-
-
     private void DrawLine(int x1, int y1, int x2, int y2)
     {
         if (drawVerticalLine)
         {
-            int midX = (x1 + x2) / 2;
-            if (!yLines.Contains(midX))
+            int midX = ((x1 + x2) / 2) + 1;
+            if (!verticalLines.Contains(midX))
             {
-                yLines.Add(midX);
-                yLines.Sort();
+                verticalLines.Add(midX);
+                verticalLines.Sort();
                 Console.WriteLine($"Vertikální čára na x = {midX} mezi ({x1}, {y1}) a ({x2}, {y2})");
             }
         }
         else
         {
-            int midY = (y1 + y2) / 2;
-            if (!xLines.Contains(midY))
+            int midY = ((y1 + y2) / 2) + 1;
+            if (!horizontalLines.Contains(midY))
             {
-                xLines.Add(midY);
-                xLines.Sort();
+                horizontalLines.Add(midY);
+                horizontalLines.Sort();
                 Console.WriteLine($"Horizontální čára na y = {midY} mezi ({x1}, {y1}) a ({x2}, {y2})");
             }
         }
@@ -111,20 +130,6 @@ public class GridIndex<T>
         return grid.Keys
             .Where(k => k.Item1 > xLeft && k.Item1 < xRight && k.Item2 > yLeft && k.Item2 < yRight)
             .Count();
-    }
-
-
-
-
-    private List<(int, int)> GetNeighbors((int, int) cell)
-    {
-        return new List<(int, int)>
-        {
-            (cell.Item1 - 1, cell.Item2),
-            (cell.Item1 + 1, cell.Item2),
-            (cell.Item1, cell.Item2 - 1),
-            (cell.Item1, cell.Item2 + 1)
-        };
     }
 
     public string[,] ToArray()
@@ -161,7 +166,7 @@ public class GridIndex<T>
     public void PrintXLines()
     {
         Console.WriteLine("Čáry na ose X:");
-        foreach (var line in xLines)
+        foreach (var line in horizontalLines)
         {
             Console.WriteLine($"Horizontální čára na y = {line}");
         }
@@ -170,7 +175,7 @@ public class GridIndex<T>
     public void PrintYLines()
     {
         Console.WriteLine("Čáry na ose Y:");
-        foreach (var line in yLines)
+        foreach (var line in verticalLines)
         {
             Console.WriteLine($"Vertikální čára na x = {line}");
         }

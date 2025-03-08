@@ -7,7 +7,7 @@ namespace Graph
         static void Main(string[] args)
         {
             DijkstraGraph<string, string, int> graph = new DijkstraGraph<string, string, int>();
-            GridIndex<string> gridIndex = new GridIndex<string>(70, 50); // Nastavení velikosti buňky
+            GridIndex<string> gridIndex = new GridIndex<string>(100, 100); // Nastavení velikosti buňky
 
             // Přidání vrcholů do grafu a gridu
             AddVertex(graph, gridIndex, "Z", "Data Z", 5, 5);
@@ -25,6 +25,9 @@ namespace Graph
             AddVertex(graph, gridIndex, "T", "Data T", 42, 65);
             AddVertex(graph, gridIndex, "G", "Data G", 45, 40);
             AddVertex(graph, gridIndex, "M", "Data M", 47, 36);
+
+            var point = gridIndex.FindPointBetweenLines(10, 10);
+
 
             gridIndex.PrintXLines();
             gridIndex.PrintYLines();
