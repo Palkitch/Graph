@@ -1,56 +1,130 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Runtime.CompilerServices;
 
 public class GridIndex<T>
 {
-    private readonly int cellSizeX, cellSizeY;
     private readonly Dictionary<(int, int), List<T>> grid = new();
+    private readonly List<int> xLines;
+    private readonly List<int> yLines;
+    private bool drawVerticalLine = true;
+    private (int x, int y)? previousPoint = null;
 
-    public GridIndex(int cellSizeX, int cellSizeY)
+    public GridIndex(int maximumX, int maximumY)
     {
-        this.cellSizeX = cellSizeX;
-        this.cellSizeY = cellSizeY;
+        xLines = new List<int> { 0, maximumX };
+        yLines = new List<int> { 0, maximumY };
     }
-
-    private (int, int) GetCell(int x, int y) => (x / cellSizeX, y / cellSizeY);
 
     public void AddPoint(int x, int y, T value)
     {
-        var cell = GetCell(x, y);
+        var cell = (x, y);
         if (!grid.ContainsKey(cell))
         {
             grid[cell] = new List<T>();
         }
         grid[cell].Add(value);
-    }
 
-    public T GetPoint(int x, int y)
-    {
-        var cell = GetCell(x, y);
-        return grid.TryGetValue(cell, out var values) && values.Count > 0 ? values[0] : default;
-    }
-
-    public List<T> GetPointsInCell(int x, int y)
-    {
-        var cell = GetCell(x, y);
-        return grid.TryGetValue(cell, out var values) ? values : new List<T>();
-    }
-
-    public List<T> GetPointsInRegion(int x1, int y1, int x2, int y2)
-    {
-        var result = new List<T>();
-        for (int x = x1 / cellSizeX; x <= x2 / cellSizeX; x++)
+        if (previousPoint.HasValue)
         {
-            for (int y = y1 / cellSizeY; y <= y2 / cellSizeY; y++)
+            var (prevX, prevY) = previousPoint.Value;
+            var nearestXLines = GetNearestLines(xLines, y);
+            var nearestYLines = GetNearestLines(yLines, x);
+            int pointsCount = PointsCountBetweenExactLines(nearestXLines.left, nearestXLines.right, nearestYLines.left, nearestYLines.right);
+
+            if (pointsCount > 1)
             {
-                if (grid.TryGetValue((x, y), out var values))
-                {
-                    result.AddRange(values);
-                }
+                DrawLine(prevX, prevY, x, y);
             }
         }
-        return result;
+        previousPoint = (x, y);
+    }
+
+    /*
+     public void AddPoint(int x, int y, T value) Add poinbt který přidává čáry mezi nejbližší body v oblasti
+{
+    var cell = (x, y);
+    if (!grid.ContainsKey(cell))
+    {
+        grid[cell] = new List<T>();
+    }
+    grid[cell].Add(value);
+
+    var nearestXLines = GetNearestLines(xLines, y);
+    var nearestYLines = GetNearestLines(yLines, x);
+
+    // Najdeme jiný bod ve stejné oblasti mezi čárami
+    var regionPoints = grid.Keys
+        .Where(k => k.Item1 > nearestYLines.left && k.Item1 < nearestYLines.right
+                 && k.Item2 > nearestXLines.left && k.Item2 < nearestXLines.right
+                 && k != cell) // Abychom nebrali právě přidávaný bod
+        .ToList();
+
+    if (regionPoints.Any())
+    {
+        var closestPoint = regionPoints
+            .OrderBy(p => Math.Abs(p.Item1 - x) + Math.Abs(p.Item2 - y)) // Manhattan vzdálenost
+            .First();
+
+        DrawLine(closestPoint.Item1, closestPoint.Item2, x, y);
+    }
+}
+
+     */
+
+    private (int left, int right) GetNearestLines(List<int> lines, int point)
+    {
+        int left = lines.Where(l => l <= point).DefaultIfEmpty(int.MinValue).Max();
+        int right = lines.Where(l => l >= point).DefaultIfEmpty(int.MaxValue).Min();
+
+        return (left, right);
+    }
+
+
+
+
+    private void DrawLine(int x1, int y1, int x2, int y2)
+    {
+        if (drawVerticalLine)
+        {
+            int midX = (x1 + x2) / 2;
+            if (!yLines.Contains(midX))
+            {
+                yLines.Add(midX);
+                yLines.Sort();
+                Console.WriteLine($"Vertikální čára na x = {midX} mezi ({x1}, {y1}) a ({x2}, {y2})");
+            }
+        }
+        else
+        {
+            int midY = (y1 + y2) / 2;
+            if (!xLines.Contains(midY))
+            {
+                xLines.Add(midY);
+                xLines.Sort();
+                Console.WriteLine($"Horizontální čára na y = {midY} mezi ({x1}, {y1}) a ({x2}, {y2})");
+            }
+        }
+        drawVerticalLine = !drawVerticalLine;
+    }
+
+    private int PointsCountBetweenExactLines(int yLeft, int yRight, int xLeft, int xRight)
+    {
+        return grid.Keys
+            .Where(k => k.Item1 > xLeft && k.Item1 < xRight && k.Item2 > yLeft && k.Item2 < yRight)
+            .Count();
+    }
+
+
+
+
+    private List<(int, int)> GetNeighbors((int, int) cell)
+    {
+        return new List<(int, int)>
+        {
+            (cell.Item1 - 1, cell.Item2),
+            (cell.Item1 + 1, cell.Item2),
+            (cell.Item1, cell.Item2 - 1),
+            (cell.Item1, cell.Item2 + 1)
+        };
     }
 
     public string[,] ToArray()
@@ -82,5 +156,23 @@ public class GridIndex<T>
         }
 
         return array;
+    }
+
+    public void PrintXLines()
+    {
+        Console.WriteLine("Čáry na ose X:");
+        foreach (var line in xLines)
+        {
+            Console.WriteLine($"Horizontální čára na y = {line}");
+        }
+    }
+
+    public void PrintYLines()
+    {
+        Console.WriteLine("Čáry na ose Y:");
+        foreach (var line in yLines)
+        {
+            Console.WriteLine($"Vertikální čára na x = {line}");
+        }
     }
 }

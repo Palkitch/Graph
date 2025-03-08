@@ -7,7 +7,7 @@ namespace Graph
         static void Main(string[] args)
         {
             DijkstraGraph<string, string, int> graph = new DijkstraGraph<string, string, int>();
-            GridIndex<string> gridIndex = new GridIndex<string>(5, 5); // Nastavení velikosti buňky
+            GridIndex<string> gridIndex = new GridIndex<string>(70, 50); // Nastavení velikosti buňky
 
             // Přidání vrcholů do grafu a gridu
             AddVertex(graph, gridIndex, "Z", "Data Z", 5, 5);
@@ -19,29 +19,15 @@ namespace Graph
             AddVertex(graph, gridIndex, "R", "Data R", 28, 50);
             AddVertex(graph, gridIndex, "X", "Data X", 30, 30);
             AddVertex(graph, gridIndex, "N", "Data N", 33, 62);
+            AddVertex(graph, gridIndex, "S", "Data S", 35, 12);
+            AddVertex(graph, gridIndex, "F", "Data F", 38, 52);
+            AddVertex(graph, gridIndex, "I", "Data I", 40, 20);
+            AddVertex(graph, gridIndex, "T", "Data T", 42, 65);
+            AddVertex(graph, gridIndex, "G", "Data G", 45, 40);
+            AddVertex(graph, gridIndex, "M", "Data M", 47, 36);
 
-            // Výpis gridu jako dvourozměrné pole
-            var gridArray = gridIndex.ToArray();
-            for (int j = 0; j < gridArray.GetLength(1); j++)
-            {
-                for (int i = 0; i < gridArray.GetLength(0); i++)
-                {
-                    Console.Write(gridArray[i, j] + "\t");
-                }
-                Console.WriteLine();
-            }
-
-            // Bodové vyhledávání
-            var point = gridIndex.GetPoint(10, 10);
-            Console.WriteLine($"Bod na souřadnicích (10, 10): {point}");
-
-            // Intervalové vyhledávání
-            var pointsInInterval = gridIndex.GetPointsInRegion(10, 20, 20, 50);
-            Console.WriteLine("Body v intervalu (10, 20) až (20, 50):");
-            foreach (var p in pointsInInterval)
-            {
-                Console.WriteLine(p);
-            }
+            gridIndex.PrintXLines();
+            gridIndex.PrintYLines();
         }
 
         static void AddVertex(DijkstraGraph<string, string, int> graph, GridIndex<string> gridIndex, string vertexId, string vertexData, int x, int y)
