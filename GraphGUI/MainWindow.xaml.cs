@@ -9,16 +9,129 @@ namespace GraphGUI
     public partial class MainWindow : Window
     {
         private DijkstraGraph<string, string, int> graph = new DijkstraGraph<string, string, int>();
-        private GridIndex<string> gridIndex = new GridIndex<string>();
+        private GridIndex<string> gridIndex = new GridIndex<string>(100, 100);
 
         public MainWindow()
         {
             InitializeComponent();
-            LoadGraphFromFile("grafy/graphZadani.txt");
+            //LoadGraphFromFile("grafy/graphZadani.txt");
             //LoadGraphFromFile("grafy/randomGraph.txt");
+            LoadGraphAndGridFromCSVFile("grafy/gridIndexZadani.txt");
             StartVertexComboBox.ItemsSource = graph.GetVertices();
+            PointValueComboBox.ItemsSource = graph.GetVertices(); // Naplnění ComboBoxu vrcholy z grafu
             UpdateEdgeComboBox();
+
+            // Načtení CSV dat ze souboru
         }
+
+        private void LoadGraphAndGridFromCSVFile(string filePath)
+        {
+            try
+            {
+                string csvData = File.ReadAllText(filePath);
+                LoadGraphAndGridFromCSV(csvData);
+                MessageTextBox.Text += "Data z CSV byla úspěšně načtena.\n";
+            }
+            catch (Exception ex)
+            {
+                MessageTextBox.Text += $"Chyba při načítání CSV dat: {ex.Message}\n";
+            }
+        }
+
+        private void LoadGraphAndGridFromCSV(string csvData)
+        {
+            var lines = csvData.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                var parts = line.Split(',');
+                if (parts.Length == 4)
+                {
+                    var id = parts[0];
+                    var data = parts[1];
+                    if (int.TryParse(parts[2], out int x) && int.TryParse(parts[3], out int y))
+                    {
+                        AddVertex(graph, gridIndex, id, data, x, y);
+                    }
+                }
+            }
+        }
+
+        private void AddVertex(DijkstraGraph<string, string, int> graph, GridIndex<string> gridIndex, string vertexId, string vertexData, int x, int y)
+        {
+            if (graph.AddVertex(vertexId, vertexData))
+            {
+                gridIndex.AddPoint(x, y, vertexId);
+                MessageTextBox.Text += $"Vrchol {vertexId} přidán na souřadnice ({x}, {y}).\n";
+            }
+            else
+            {
+                MessageTextBox.Text += $"Vrchol {vertexId} již existuje.\n";
+            }
+        }
+        private void AddPointToGridButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (int.TryParse(PointXTextBox.Text, out int x) && int.TryParse(PointYTextBox.Text, out int y))
+            {
+                var value = PointValueComboBox.SelectedItem as string;
+                if (value != null)
+                {
+                    gridIndex.AddPoint(x, y, value);
+                    MessageTextBox.Text = $"Bod ({x}, {y}) s hodnotou '{value}' byl přidán do gridu.";
+                }
+                else
+                {
+                    MessageTextBox.Text = "Prosím vyberte platnou hodnotu z ComboBoxu.";
+                }
+            }
+            else
+            {
+                MessageTextBox.Text = "Prosím zadejte platné souřadnice X a Y.";
+            }
+        }
+
+        private void FindPointButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (int.TryParse(SearchXTextBox.Text, out int x) && int.TryParse(SearchYTextBox.Text, out int y))
+            {
+                var point = gridIndex.FindPointBetweenLines(x, y);
+                if (point != null)
+                {
+                    MessageTextBox.Text = $"Bod na souřadnicích ({x}, {y}) má hodnotu '{point}' ({x}, {y}).";
+                }
+                else
+                {
+                    MessageTextBox.Text = $"Bod na souřadnicích ({x}, {y}) nebyl nalezen.";
+                }
+            }
+            else
+            {
+                MessageTextBox.Text = "Prosím zadejte platné souřadnice X a Y.";
+            }
+        }
+
+        private void FindIntervalButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (int.TryParse(IntervalX1TextBox.Text, out int x1) && int.TryParse(IntervalY1TextBox.Text, out int y1) &&
+                int.TryParse(IntervalX2TextBox.Text, out int x2) && int.TryParse(IntervalY2TextBox.Text, out int y2))
+            {
+                var points = gridIndex.FindPointsInArea(x1, y1, x2, y2);
+                if (points.Any())
+                {
+                    var result = points.Select(p => $"ID: {p.Id}, Souřadnice: ({p.X}, {p.Y})").ToList();
+                    MessageTextBox.Text = $"Body v intervalu ({x1}, {y1}) - ({x2}, {y2}):\n" + string.Join("\n", result);
+                }
+                else
+                {
+                    MessageTextBox.Text = $"V intervalu ({x1}, {y1}) - ({x2}, {y2}) nebyly nalezeny žádné body.";
+                }
+            }
+            else
+            {
+                MessageTextBox.Text = "Prosím zadejte platné souřadnice pro interval.";
+            }
+        }
+
+
 
         private void SaveGraphToFile(string filePath)
         {
@@ -33,6 +146,7 @@ namespace GraphGUI
                 MessageTextBox.Text = $"Chyba při ukládání grafu: {ex.Message}";
             }
         }
+
         private void LoadGraphFromFile(string filePath)
         {
             try
@@ -69,6 +183,7 @@ namespace GraphGUI
                 MessageTextBox.Text = $"Chyba při načítání grafu: {ex.Message}";
             }
         }
+
         private void AddVertexButton_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new Window
@@ -219,6 +334,24 @@ namespace GraphGUI
 
             MessageTextBox.Text = $"Vrchol: {selectedVertex}\nData: {vertexData}\nSousedi:\n{edgesInfo}";
         }
+
+        private void PrintLinesButton_Click(object sender, RoutedEventArgs e)
+        {
+            var xLines = new StringWriter();
+            var yLines = new StringWriter();
+
+            Console.SetOut(xLines);
+            gridIndex.PrintXLines();
+            Console.SetOut(yLines);
+            gridIndex.PrintYLines();
+
+            MessageTextBox.Text = $"Čáry na ose X:\n{xLines}\n\nČáry na ose Y:\n{yLines}";
+        }
+        private void PrintGridButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageTextBox.Text = gridIndex.ToCompactString();
+        }
+
 
         private void UpdateEdgeComboBox()
         {

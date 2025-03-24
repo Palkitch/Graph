@@ -1,21 +1,22 @@
 ﻿<Window x:Class="GraphGUI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Graph GUI" Height="500" Width="860">
+        Title="Graph GUI" Height="500" Width="1000">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto" MinWidth="220"/>
         </Grid.ColumnDefinitions>
         <StackPanel Orientation="Vertical" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0" Width="120">
             <Button Name="AddVertexButton" Content="Přidat vrchol" Width="110" Margin="0,0,0,10" Click="AddVertexButton_Click"/>
             <Button Name="AddEdgeButton" Content="Přidat hranu" Width="110" Margin="0,0,0,10" Click="AddEdgeButton_Click"/>
-            <Separator Width="110" Margin="0,0,0,10"/>
+            <Separator Width="110" Margin="0,0,20,10"/>
             <TextBlock Text="Vyberte hranu" Margin="0,0,0,5" HorizontalAlignment="Center"/>
             <ComboBox Name="EdgeComboBox" Width="110" Margin="0,0,0,10"/>
             <Button Name="BlockEdgeButton" Content="Změnit dostupnost" Width="110" Margin="0,0,0,10" Click="BlockEdgeButton_Click"/>
             <Button Name="RemoveEdgeButton" Content="Odebrat hranu" Width="110" Margin="0,0,0,10" Click="RemoveEdgeButton_Click"/>
-            <Separator Width="110" Margin="0,0,0,10"/>
+            <Separator Width="110" Margin="0,0,20,10"/>
             <TextBlock Text="Vrchol" Margin="0,0,0,5" HorizontalAlignment="Center"/>
             <ComboBox Name="StartVertexComboBox" Width="110" Margin="0,0,0,10"/>
             <Button Name="SearchVertexButton" Content="Vyhledat" Width="110" Margin="0,0,0,10" Click="SearchVertexButton_Click"/>
@@ -25,5 +26,42 @@
             <Button x:Name="ClearGraphButton" Content="Zrušit graf" Width="110" Margin="0,10,0,10" Click="ClearGraphButton_Click"/>
         </StackPanel>
         <TextBox Name="MessageTextBox" Grid.Column="1" Margin="10,10,10,10" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" FontFamily="Consolas" IsReadOnly="True"/>
+        <StackPanel Grid.Column="2" Orientation="Vertical" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0" Width="220">
+            <TextBlock Text="Grid" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <TextBlock Text="X" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox x:Name="PointXTextBox" Width="40" Margin="0,0,10,0" />
+                <TextBlock Text="Y" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox x:Name="PointYTextBox" Width="40" Margin="0,0,10,0" />
+                <ComboBox x:Name="PointValueComboBox" Width="77" Margin="0,0,10,0" />
+            </StackPanel>
+            <Button Content="Přidat bod do gridu" Click="AddPointToGridButton_Click" Margin="0,0,20,10" />
+            <Separator Width="220" Margin="0,0,20,10"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <TextBlock Text="X" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox x:Name="SearchXTextBox" Width="40" Margin="0,0,10,0" />
+                <TextBlock Text="Y" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox x:Name="SearchYTextBox" Width="40" Margin="0,0,10,0" />
+            </StackPanel>
+            <Button Content="Vyhledat bod" Click="FindPointButton_Click" Margin="0,0,20,10" />            
+            <Separator Width="220" Margin="0,0,20,10"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <TextBlock Text="X1" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox x:Name="IntervalX1TextBox" Width="40" Margin="0,0,10,0" />
+                <TextBlock Text="Y1" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox x:Name="IntervalY1TextBox" Width="40" Margin="0,0,10,0" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <TextBlock Text="X2" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox x:Name="IntervalX2TextBox" Width="40" Margin="0,0,10,0" />
+                <TextBlock Text="Y2" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox x:Name="IntervalY2TextBox" Width="40" Margin="0,0,10,0" />
+            </StackPanel>
+            <Button Content="Vyhledat interval" Click="FindIntervalButton_Click" Margin="0,0,20,10" />
+            <Separator Width="220" Margin="0,0,20,10"/>
+            
+            <Button Content="Vypsat čáry" Click="PrintLinesButton_Click" Margin="0,0,20,10" />
+            <Button Content="Vypsat grid" Click="PrintGridButton_Click" Margin="0,0,20,10" />
+        </StackPanel>
     </Grid>
 </Window>
