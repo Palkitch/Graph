@@ -1,0 +1,8 @@
+Z,Data Z,5,20
+K,Data K,10,20
+U,Data U,15,20
+A,Data A,20,20
+W,Data W,30,10
+P,Data P,30,15
+R,Data R,30,20
+X,Data X,30,30

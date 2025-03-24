@@ -1,0 +1,33 @@
+V,x,Mesto X
+V,i,Mesto I
+V,a,Mesto A
+V,m,Mesto M
+V,g,Mesto G
+V,u,Mesto U
+V,s,Mesto S
+V,k,Mesto K
+V,t,Mesto T
+V,n,Mesto N
+V,z,Mesto Z
+V,p,Mesto P
+V,r,Mesto R
+V,f,Mesto F
+V,w,Mesto W
+E,x,i,6,True
+E,x,a,3,True
+E,x,m,8,True
+E,x,g,8,True
+E,x,u,10,True
+E,i,s,3,True
+E,a,s,8,True
+E,a,k,7,True
+E,m,g,1,True
+E,g,u,15,True
+E,g,t,12,True
+E,s,k,10,True
+E,k,z,2,True
+E,t,n,3,True
+E,n,f,5,True
+E,n,r,6,True
+E,n,p,4,True
+E,p,w,1,True
