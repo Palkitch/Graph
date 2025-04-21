@@ -1,186 +1,318 @@
-﻿using Graph;
+﻿using Graph; 
+using System;
+using System.Collections.Generic;
+using System.Globalization;     
 using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Text.Json;
+using System.Linq;              
+using System.Text;
 using System.Windows;
+using System.Windows.Controls;
+
 
 namespace GraphGUI
 {
     public partial class MainWindow : Window
     {
+        private const string GridDataFilePath = "grid_data.bin";
+        private const double GridMinX = 0, GridMaxX = 100, GridMinY = 0, GridMaxY = 100;
+
         private DijkstraGraph<string, string, int> graph = new DijkstraGraph<string, string, int>();
-        private GridIndex<string> gridIndex = new GridIndex<string>(100, 100);
+     
+        private GridIndex<string> gridIndex;
 
         public MainWindow()
         {
             InitializeComponent();
-            //LoadGraphFromFile("grafy/graphZadani.txt");
-            //LoadGraphFromFile("grafy/randomGraph.txt");
-            LoadGraphAndGridFromCSVFile("grafy/gridIndexZadani.txt");
-            StartVertexComboBox.ItemsSource = graph.GetVertices();
-            PointValueComboBox.ItemsSource = graph.GetVertices(); // Naplnění ComboBoxu vrcholy z grafu
-            UpdateEdgeComboBox();
 
-            // Načtení CSV dat ze souboru
+            gridIndex = new GridIndex<string>(3, GridDataFilePath, GridMinX, GridMaxX, GridMinY, GridMaxY);
+            MessageTextBox.Text = $"GridIndex inicializován. Načteno ze souboru: {gridIndex.IsLoadedFromFile}\n";
+            MessageTextBox.Text += gridIndex.ToString() + "\n-------\n";
+
+            string graphDataSourcePath = "grafy/gridIndexZadaniC.txt"; 
+            LoadGraphStructureFromCSV(graphDataSourcePath);
+
+            if (!gridIndex.IsLoadedFromFile)
+            {
+                MessageTextBox.Text += $"Binární soubor '{GridDataFilePath}' nebyl nalezen nebo je neplatný.\n";
+                MessageTextBox.Text += $"Pokouším se naplnit GridIndex daty z CSV: '{graphDataSourcePath}'...\n";
+                bool populated = PopulateGridFromCSV(graphDataSourcePath);
+                if (populated)
+                {
+                    MessageTextBox.Text += "GridIndex úspěšně naplněn z CSV.\n";
+                    bool saved = gridIndex.Save();
+                    MessageTextBox.Text += $"Pokus o uložení do '{GridDataFilePath}': {(saved ? "Úspěšný" : "Neúspěšný")}\n";
+                    MessageTextBox.Text += gridIndex.ToString() + "\n-------\n";
+                }
+                else
+                {
+                    MessageTextBox.Text += "Naplnění GridIndex z CSV se nezdařilo.\n";
+                }
+            }
+            else 
+            {
+                MessageTextBox.Text += $"GridIndex úspěšně načten z '{GridDataFilePath}'. Načítání z CSV bylo přeskočeno.\n";
+
+            }
+            UpdateUIComboBoxes();
         }
 
-        private void LoadGraphAndGridFromCSVFile(string filePath)
+        private void LoadGraphStructureFromCSV(string filePath)
         {
             try
             {
-                string csvData = File.ReadAllText(filePath);
-                LoadGraphAndGridFromCSV(csvData);
-                MessageTextBox.Text += "Data z CSV byla úspěšně načtena.\n";
+                if (!File.Exists(filePath))
+                {
+                    MessageTextBox.Text += $"Chyba: Soubor pro načtení struktury grafu nebyl nalezen: {filePath}\n";
+                    return;
+                }
+
+                string[] lines = File.ReadAllLines(filePath);
+                graph = new DijkstraGraph<string, string, int>(); 
+                int verticesLoaded = 0;
+                foreach (var line in lines.Skip(0)) 
+                {
+                    var parts = line.Split(',');
+                    if (parts.Length >= 2)
+                    {
+                        var id = parts[0].Trim();
+                        var data = parts[1].Trim();
+                        if (!string.IsNullOrEmpty(id))
+                        {
+                            if (graph.AddVertex(id, data))
+                            {
+                                verticesLoaded++;
+                            }
+                            else
+                            {
+                                MessageTextBox.Text += $"Varování: Duplicitní vrchol '{id}' v CSV pro graf.\n";
+                            }
+                        }
+                    }
+                    else
+                    {
+                        MessageTextBox.Text += $"Varování: Neplatný řádek v CSV pro graf: {line}\n";
+                    }
+                }
+                MessageTextBox.Text += $"Struktura grafu načtena z '{filePath}'. Počet vrcholů: {verticesLoaded}.\n";
             }
             catch (Exception ex)
             {
-                MessageTextBox.Text += $"Chyba při načítání CSV dat: {ex.Message}\n";
+                MessageTextBox.Text += $"Kritická chyba při načítání struktury grafu z CSV: {ex.Message}\n";
+
+                graph = new DijkstraGraph<string, string, int>();
             }
         }
 
-        private void LoadGraphAndGridFromCSV(string csvData)
+
+        private bool PopulateGridFromCSV(string filePath)
         {
-            var lines = csvData.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var line in lines)
+            bool dataAdded = false;
+            try
             {
-                var parts = line.Split(',');
-                if (parts.Length == 4)
+                if (!File.Exists(filePath))
                 {
-                    var id = parts[0];
-                    var data = parts[1];
-                    if (int.TryParse(parts[2], out int x) && int.TryParse(parts[3], out int y))
+                    MessageTextBox.Text += $"Chyba: Soubor pro naplnění gridu nebyl nalezen: {filePath}\n";
+                    return false;
+                }
+
+                string[] lines = File.ReadAllLines(filePath);
+                int pointsAdded = 0;
+                foreach (var line in lines.Skip(0)) 
+                {
+                    var parts = line.Split(',');
+                    if (parts.Length == 4)
                     {
-                        AddVertex(graph, gridIndex, id, data, x, y);
+                        var id = parts[0].Trim();
+                        if (!string.IsNullOrEmpty(id) &&
+                            double.TryParse(parts[2].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double x) &&
+                            double.TryParse(parts[3].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double y))
+                        {
+                            gridIndex.AddPoint(id, x, y);
+                            pointsAdded++;
+                            dataAdded = true;
+                        }
+                        else
+                        {
+                            MessageTextBox.Text += $"Varování: Neplatný řádek v CSV pro grid: {line}\n";
+                        }
+                    }
+                    else
+                    {
+                        MessageTextBox.Text += $"Varování: Nesprávný počet polí v CSV pro grid: {line}\n";
                     }
                 }
+                MessageTextBox.Text += $"Grid naplněn {pointsAdded} body z '{filePath}'.\n";
+                return dataAdded;
+            }
+            catch (Exception ex)
+            {
+                MessageTextBox.Text += $"Chyba při plnění gridu z CSV: {ex.Message}\n";
+                return false;
             }
         }
 
-        private void AddVertex(DijkstraGraph<string, string, int> graph, GridIndex<string> gridIndex, string vertexId, string vertexData, int x, int y)
+
+        private void AddVertex(string vertexId, string vertexData, double x, double y)
         {
             if (graph.AddVertex(vertexId, vertexData))
             {
-                gridIndex.AddPoint(x, y, vertexId);
-                MessageTextBox.Text += $"Vrchol {vertexId} přidán na souřadnice ({x}, {y}).\n";
+                gridIndex.AddPoint(vertexId, x, y); 
+                gridIndex.Save();
+                MessageTextBox.Text += $"Vrchol {vertexId} přidán na souřadnice ({x}, {y}) a uložen.\n";
+                UpdateUIComboBoxes(); 
             }
             else
             {
                 MessageTextBox.Text += $"Vrchol {vertexId} již existuje.\n";
             }
         }
+
         private void AddPointToGridButton_Click(object sender, RoutedEventArgs e)
         {
-            if (int.TryParse(PointXTextBox.Text, out int x) && int.TryParse(PointYTextBox.Text, out int y))
+            if (double.TryParse(PointXTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double x) &&
+                double.TryParse(PointYTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double y))
             {
-                var value = PointValueComboBox.SelectedItem as string;
-                if (value != null)
+                var value = PointValueComboBox.SelectedItem as string; 
+                if (!string.IsNullOrEmpty(value))
                 {
-                    gridIndex.AddPoint(x, y, value);
-                    MessageTextBox.Text = $"Bod ({x}, {y}) s hodnotou '{value}' byl přidán do gridu.";
+                    if (graph.FindVertex(value) != null)
+                    {
+                        gridIndex.AddPoint(value, x, y);
+                        bool saved = gridIndex.Save();     
+                        MessageTextBox.Text = $"Bod ({x}, {y}) s ID '{value}' byl přidán do gridu. Uložení: {(saved ? "OK" : "Chyba")}";
+                       
+                    }
+                    else
+                    {
+                        MessageTextBox.Text = $"Chyba: Vrchol s ID '{value}' neexistuje v grafu.";
+                    }
                 }
                 else
                 {
-                    MessageTextBox.Text = "Prosím vyberte platnou hodnotu z ComboBoxu.";
+                    MessageTextBox.Text = "Prosím vyberte platné ID vrcholu z ComboBoxu.";
                 }
             }
             else
             {
-                MessageTextBox.Text = "Prosím zadejte platné souřadnice X a Y.";
+                MessageTextBox.Text = "Prosím zadejte platné číselné souřadnice X a Y.";
             }
         }
 
         private void FindPointButton_Click(object sender, RoutedEventArgs e)
         {
-            if (int.TryParse(SearchXTextBox.Text, out int x) && int.TryParse(SearchYTextBox.Text, out int y))
+            if (double.TryParse(SearchXTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double x) &&
+                double.TryParse(SearchYTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double y))
             {
-                var point = gridIndex.FindPointBetweenLines(x, y);
-                if (point != null)
+                var pointId = gridIndex.FindPoint(x, y); 
+                if (pointId != null)
                 {
-                    MessageTextBox.Text = $"Bod na souřadnicích ({x}, {y}) má hodnotu '{point}' ({x}, {y}).";
+                    var vertexData = graph.FindVertex(pointId);
+                    MessageTextBox.Text = $"Bod na souřadnicích ({x}, {y}) nalezen.\nID: '{pointId}'\nData vrcholu: '{vertexData ?? "N/A"}'";
                 }
                 else
                 {
-                    MessageTextBox.Text = $"Bod na souřadnicích ({x}, {y}) nebyl nalezen.";
+                    MessageTextBox.Text = $"Bod na přesných souřadnicích ({x}, {y}) nebyl v gridu nalezen.";
                 }
             }
             else
             {
-                MessageTextBox.Text = "Prosím zadejte platné souřadnice X a Y.";
+                MessageTextBox.Text = "Prosím zadejte platné číselné souřadnice X a Y pro hledání.";
             }
         }
+
 
         private void FindIntervalButton_Click(object sender, RoutedEventArgs e)
         {
-            if (int.TryParse(IntervalX1TextBox.Text, out int x1) && int.TryParse(IntervalY1TextBox.Text, out int y1) &&
-                int.TryParse(IntervalX2TextBox.Text, out int x2) && int.TryParse(IntervalY2TextBox.Text, out int y2))
+            if (double.TryParse(IntervalX1TextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double x1) &&
+                double.TryParse(IntervalY1TextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double y1) &&
+                double.TryParse(IntervalX2TextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double x2) &&
+                double.TryParse(IntervalY2TextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double y2))
             {
-                var points = gridIndex.FindPointsInArea(x1, y1, x2, y2);
-                if (points.Any())
+                if (x1 > x2) Swap(ref x1, ref x2);
+                if (y1 > y2) Swap(ref y1, ref y2);
+
+                AreaSearchResult<string> searchResult = gridIndex.FindPointsInArea(x1, x2, y1, y2);
+
+                var messageBuilder = new StringBuilder();
+                messageBuilder.AppendLine($"Výsledky hledání v intervalu X:[{x1}, {x2}], Y:[{y1}, {y2}]:");
+                messageBuilder.AppendLine("---");
+
+                if (searchResult.CheckedCellIndices.Any())
                 {
-                    var result = points.Select(p => $"ID: {p.Id}, Souřadnice: ({p.X}, {p.Y})").ToList();
-                    MessageTextBox.Text = $"Body v intervalu ({x1}, {y1}) - ({x2}, {y2}):\n" + string.Join("\n", result);
+                    string checkedCellsString = string.Join(", ",
+                        searchResult.CheckedCellIndices.Select(cellIndex => $"[{cellIndex.XIndex}][{cellIndex.YIndex}]"));
+                    messageBuilder.AppendLine($"Prohledané bloky (indexy [sloupec][řádek]): {checkedCellsString}");
                 }
                 else
                 {
-                    MessageTextBox.Text = $"V intervalu ({x1}, {y1}) - ({x2}, {y2}) nebyly nalezeny žádné body.";
+                    messageBuilder.AppendLine("Nebyly prohledány žádné bloky (oblast mimo mřížku?).");
                 }
+                messageBuilder.AppendLine("---");
+
+                if (searchResult.FoundPoints.Any())
+                {
+                    messageBuilder.AppendLine($"Nalezeno {searchResult.FoundPoints.Count} bodů:");
+                    foreach (string pointId in searchResult.FoundPoints)
+                    {
+                        messageBuilder.AppendLine($"- ID: {pointId}");
+                    }
+                }
+                else
+                {
+                    messageBuilder.AppendLine("V zadané oblasti nebyly nalezeny žádné body.");
+                }
+
+                MessageTextBox.Text = messageBuilder.ToString();
             }
             else
             {
-                MessageTextBox.Text = "Prosím zadejte platné souřadnice pro interval.";
+                MessageTextBox.Text = "Prosím zadejte platné číselné souřadnice pro interval.";
             }
+        }
+
+        private void Swap(ref double a, ref double b)
+        {
+            double temp = a;
+            a = b;
+            b = temp;
+        }
+
+        private void PrintLinesButton_Click(object sender, RoutedEventArgs e)
+        {
+            var xLines = gridIndex.XLines;
+            var yLines = gridIndex.YLines;
+
+            if (xLines == null || yLines == null)
+            {
+                MessageTextBox.Text = "Chyba: Seznamy čar nebyly inicializovány.";
+                return;
+            }
+
+            var verticalLinesText = string.Join("\n", xLines.Select(line => $"Vertikální čára na x = {line.ToString(CultureInfo.InvariantCulture)}"));
+            var horizontalLinesText = string.Join("\n", yLines.Select(line => $"Horizontální čára na y = {line.ToString(CultureInfo.InvariantCulture)}"));
+
+            MessageTextBox.Text = $"Vertikální dělící čáry (X Lines):\n{verticalLinesText}\n\n"
+                                + $"Horizontální dělící čáry (Y Lines):\n{horizontalLinesText}";
+        }
+
+        private void PrintGridButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageTextBox.Text = gridIndex?.ToString() ?? "GridIndex není inicializován.";
         }
 
 
 
-        private void SaveGraphToFile(string filePath)
+        private void SaveGraphToFile(string filePath) 
         {
             try
             {
-                string graphData = graph.PrintRawGraph();
+                string graphData = graph.PrintRawGraph(); 
                 File.WriteAllText(filePath, graphData);
                 MessageTextBox.Text = "Graf byl úspěšně uložen do souboru.";
             }
             catch (Exception ex)
             {
                 MessageTextBox.Text = $"Chyba při ukládání grafu: {ex.Message}";
-            }
-        }
-
-        private void LoadGraphFromFile(string filePath)
-        {
-            try
-            {
-                graph = new DijkstraGraph<string, string, int>();
-
-                string[] lines = File.ReadAllLines(filePath);
-                foreach (var line in lines)
-                {
-                    var parts = line.Split(',');
-                    if (parts[0] == "V")
-                    {
-                        // Načíst vrchol
-                        graph.AddVertex(parts[1], parts[2]);
-                    }
-                    else if (parts[0] == "E")
-                    {
-                        // Načíst hranu
-                        var from = parts[1];
-                        var to = parts[2];
-                        var weight = int.Parse(parts[3]);
-                        var isAccessible = bool.Parse(parts[4]);
-                        graph.AddEdge(from, to, weight);
-                        if (!isAccessible)
-                        {
-                            graph.ChangeAccessibility(from, to);
-                        }
-                    }
-                }
-                MessageTextBox.Text = "Graf byl úspěšně načten ze souboru.";
-            }
-            catch (Exception ex)
-            {
-                MessageTextBox.Text = $"Chyba při načítání grafu: {ex.Message}";
             }
         }
 
@@ -201,11 +333,11 @@ namespace GraphGUI
                 var vertexId = addVertexDialog.VertexId;
                 var vertexData = addVertexDialog.VertexData;
 
+
                 if (graph.AddVertex(vertexId, vertexData))
                 {
-                    MessageTextBox.Text = $"Vrchol {vertexId} přidán.";
-                    StartVertexComboBox.ItemsSource = graph.GetVertices(); // Aktualizace ComboBoxu
-                    UpdateEdgeComboBox(); // Aktualizace ComboBoxu hrany
+                    MessageTextBox.Text = $"Vrchol {vertexId} přidán do grafu. POZOR: Nebyl přidán do gridu (chybí souřadnice).";
+                    UpdateUIComboBoxes();
                 }
                 else
                 {
@@ -214,12 +346,13 @@ namespace GraphGUI
             }
         }
 
+
         private void AddEdgeButton_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new Window
             {
                 Title = "Přidat hranu",
-                Content = new AddEdgeDialog(graph),
+                Content = new AddEdgeDialog(graph), 
                 SizeToContent = SizeToContent.WidthAndHeight,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 Owner = this
@@ -230,38 +363,49 @@ namespace GraphGUI
                 var addEdgeDialog = (AddEdgeDialog)dialog.Content;
                 var startVertex = addEdgeDialog.StartVertex;
                 var endVertex = addEdgeDialog.EndVertex;
-                var weight = int.Parse(addEdgeDialog.Weight);
-
-                if (graph.AddEdge(startVertex, endVertex, weight))
+                if (int.TryParse(addEdgeDialog.Weight, NumberStyles.Integer, CultureInfo.InvariantCulture, out int weight))
                 {
-                    MessageTextBox.Text = $"Hrana přidána z {startVertex} do {endVertex} s ohodnocením {weight}.";
-                    UpdateEdgeComboBox(); // Aktualizace ComboBoxu hrany
+                    if (graph.AddEdge(startVertex, endVertex, weight))
+                    {
+                        MessageTextBox.Text = $"Hrana přidána z {startVertex} do {endVertex} s váhou {weight}.";
+                        UpdateUIComboBoxes(); 
+                    }
+                    else
+                    {
+                        MessageTextBox.Text = $"Hranu z {startVertex} do {endVertex} nelze přidat (možná již existuje?).";
+                    }
                 }
                 else
                 {
-                    MessageTextBox.Text = $"Hranu z {startVertex} do {endVertex} nelze přidat.";
+                    MessageTextBox.Text = "Neplatná váha hrany.";
                 }
             }
         }
+
 
         private void RemoveEdgeButton_Click(object sender, RoutedEventArgs e)
         {
             var selectedEdge = EdgeComboBox.SelectedItem as string;
             if (string.IsNullOrEmpty(selectedEdge))
             {
-                MessageTextBox.Text = "Prosím vyberte hranu.";
+                MessageTextBox.Text = "Prosím vyberte hranu k odebrání.";
                 return;
             }
 
-            var vertices = selectedEdge.Split(" <-> ");
-            if (vertices.Length == 2 && graph.RemoveEdge(vertices[0], vertices[1]))
+            string[] parts = selectedEdge.Split(new[] { " <-> ", " (" }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length >= 2 && graph.RemoveEdge(parts[0], parts[1]))
             {
-                MessageTextBox.Text = $"Hrana mezi {vertices[0]} a {vertices[1]} byla odebrána.";
-                UpdateEdgeComboBox(); // Aktualizace ComboBoxu hrany
+                MessageTextBox.Text = $"Hrana mezi {parts[0]} a {parts[1]} byla odebrána.";
+                UpdateUIComboBoxes(); 
+            }
+            else if (parts.Length >= 2)
+            {
+                MessageTextBox.Text = $"Hranu mezi {parts[0]} a {parts[1]} nelze odebrat (možná neexistuje?).";
             }
             else
             {
-                MessageTextBox.Text = $"Hranu mezi {vertices[0]} a {vertices[1]} nelze odebrat.";
+                MessageTextBox.Text = "Nelze zpracovat vybranou hranu.";
             }
         }
 
@@ -270,18 +414,22 @@ namespace GraphGUI
             var selectedEdge = EdgeComboBox.SelectedItem as string;
             if (string.IsNullOrEmpty(selectedEdge))
             {
-                MessageTextBox.Text = "Prosím vyberte hranu.";
+                MessageTextBox.Text = "Prosím vyberte hranu pro změnu dostupnosti.";
                 return;
             }
 
-            var vertices = selectedEdge.Split(" <-> ");
-            if (vertices.Length == 2 && graph.ChangeAccessibility(vertices[0], vertices[1]))
+            string[] parts = selectedEdge.Split(new[] { " <-> ", " (" }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length >= 2)
             {
-                MessageTextBox.Text = $"Hrana mezi {vertices[0]} a {vertices[1]} byla zablokována.";
+                bool currentState = graph.ChangeAccessibility(parts[0], parts[1]); 
+                MessageTextBox.Text = $"Dostupnost hrany mezi {parts[0]} a {parts[1]} změněna. Nový stav: {(currentState ? "Dostupná" : "Nedostupná")}.";
+
+                UpdateUIComboBoxes();
             }
             else
             {
-                MessageTextBox.Text = $"Hranu mezi {vertices[0]} a {vertices[1]} nelze zablokovat.";
+                MessageTextBox.Text = "Nelze zpracovat vybranou hranu.";
             }
         }
 
@@ -293,70 +441,79 @@ namespace GraphGUI
                 MessageTextBox.Text = "Prosím vyberte počáteční vrchol.";
                 return;
             }
-            graph.FindShortestPaths(startVertex);
-            var vector = graph.PrintPredecessors();
-            var adjacencyMatrix = graph.PrintShortestPathsTable();
+            try
+            {
+                graph.FindShortestPaths(startVertex);
+                var vector = graph.PrintPredecessors();
+                var pathsTable = graph.PrintShortestPathsTable(); 
 
-            MessageTextBox.Text = "Matice sousednosti:\n" + adjacencyMatrix + "\n\nVektor nejkratších cest:\n" + vector;
+                MessageTextBox.Text = "Výsledky Dijkstrova algoritmu:\n"
+                                    + "Tabulka nejkratších cest:\n" + pathsTable
+                                    + "\n\nVektor předchůdců:\n" + vector;
+            }
+            catch (Exception ex)
+            {
+                MessageTextBox.Text = $"Chyba při provádění Dijkstrova algoritmu: {ex.Message}";
+            }
         }
 
         private void PrintGraphButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageTextBox.Text = graph.PrintGraph();
+            MessageTextBox.Text = graph?.PrintGraph() ?? "Graf není inicializován."; 
         }
 
         private void ClearGraphButton_Click(object sender, RoutedEventArgs e)
         {
             graph = new DijkstraGraph<string, string, int>();
-            StartVertexComboBox.ItemsSource = graph.GetVertices();
-            UpdateEdgeComboBox();
-            MessageTextBox.Text = "Graf byl zrušen a program je připraven na nový graf.";
+            gridIndex = new GridIndex<string>(30, GridDataFilePath, GridMinX, GridMaxX, GridMinY, GridMaxY);
+
+            try
+            {
+                if (File.Exists(GridDataFilePath)) File.Delete(GridDataFilePath);
+            }
+            catch (Exception ex)
+            {
+                MessageTextBox.Text = $"Varování: Nepodařilo se smazat soubor gridu '{GridDataFilePath}': {ex.Message}\n";
+            }
+
+            UpdateUIComboBoxes();
+            MessageTextBox.Text = "Graf a GridIndex byly resetovány. Program je připraven na nový graf.";
         }
 
         private void SearchVertexButton_Click(object sender, RoutedEventArgs e)
         {
-            var selectedVertex = StartVertexComboBox.SelectedItem as string;
-            if (string.IsNullOrEmpty(selectedVertex))
+            var selectedVertexId = StartVertexComboBox.SelectedItem as string;
+            if (string.IsNullOrEmpty(selectedVertexId))
             {
-                MessageTextBox.Text = "Prosím vyberte vrchol.";
+                MessageTextBox.Text = "Prosím vyberte vrchol pro vyhledání.";
                 return;
             }
 
-            var vertexData = graph.FindVertex(selectedVertex);
+            var vertexData = graph.FindVertex(selectedVertexId);
             if (vertexData == null)
             {
-                MessageTextBox.Text = $"Vrchol {selectedVertex} nebyl nalezen.";
+                MessageTextBox.Text = $"Vrchol '{selectedVertexId}' nebyl v grafu nalezen.";
                 return;
             }
 
-            var edges = graph.GetEdgesAsString().Where(e => e.StartsWith(selectedVertex) || e.EndsWith(selectedVertex));
-            var edgesInfo = string.Join("\n", edges);
+            var edges = graph.GetEdgesAsString()
+                             .Where(edgeStr => edgeStr.Contains($" {selectedVertexId} ") || edgeStr.StartsWith($"{selectedVertexId} ") || edgeStr.EndsWith($" {selectedVertexId}(")) // Hrubý odhad filtru
+                             .ToList();
 
-            MessageTextBox.Text = $"Vrchol: {selectedVertex}\nData: {vertexData}\nSousedi:\n{edgesInfo}";
+            var edgesInfo = edges.Any() ? string.Join("\n", edges) : "Žádné připojené hrany.";
+
+            MessageTextBox.Text = $"Informace o vrcholu:\n"
+                                + $"ID: {selectedVertexId}\n"
+                                + $"Data: {vertexData}\n"
+                                + $"Připojené hrany:\n{edgesInfo}";
         }
 
-        private void PrintLinesButton_Click(object sender, RoutedEventArgs e)
+        private void UpdateUIComboBoxes()
         {
-            var xLines = new StringWriter();
-            var yLines = new StringWriter();
-
-            Console.SetOut(xLines);
-            gridIndex.PrintXLines();
-            Console.SetOut(yLines);
-            gridIndex.PrintYLines();
-
-            MessageTextBox.Text = $"Čáry na ose X:\n{xLines}\n\nČáry na ose Y:\n{yLines}";
-        }
-        private void PrintGridButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageTextBox.Text = gridIndex.ToCompactString();
-        }
-
-
-        private void UpdateEdgeComboBox()
-        {
-            EdgeComboBox.ItemsSource = graph.GetEdgesAsString();
+            var vertices = graph?.GetVertices() ?? new List<string>();
+            StartVertexComboBox.ItemsSource = vertices;
+            PointValueComboBox.ItemsSource = vertices;
+            EdgeComboBox.ItemsSource = graph?.GetEdgesAsString() ?? new List<string>(); 
         }
     }
 }
-

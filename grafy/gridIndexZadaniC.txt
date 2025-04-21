@@ -1,0 +1,15 @@
+R,Data R,28,50
+N,Data N,33,62
+G,Data G,45,40
+X,Data X,30,30
+F,Data F,38,52
+K,Data K,10,10
+I,Data I,40,20
+A,Data A,20,25
+S,Data S,35,12
+M,Data M,47,36
+T,Data T,42,65
+P,Data P,25,55
+W,Data W,22,60
+U,Data U,15,45
+Z,Data Z,5,5
