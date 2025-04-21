@@ -356,14 +356,14 @@ public class GridIndex<T>
     }
 
 
-    public T FindPoint(double x, double y) // Návratový typ T? nelze použít bez omezení 'where T: struct' nebo 'where T: class'
+    public GridNode<T> FindPoint(double x, double y)
     {
         int xIndex = FindIndex(xLines, x);
         int yIndex = FindIndex(yLines, y);
 
         if (xIndex < 0 || grid == null || xIndex >= grid.Count || grid[xIndex] == null || yIndex < 0 || yIndex >= grid[xIndex].Count || grid[xIndex][yIndex] == null)
         {
-            return default(T); // Mimo mřížku nebo chyba struktury
+            return null;
         }
 
         var cell = grid[xIndex][yIndex];
@@ -373,12 +373,13 @@ public class GridIndex<T>
         {
             if (Math.Abs(node.X - x) < tolerance && Math.Abs(node.Y - y) < tolerance)
             {
-                return node.Data; // Nalezeno
+                return node;
             }
         }
 
-        return default(T); // Nenalezeno
+        return null;
     }
+
 
 
     // Uvnitř třídy GridIndex<T>
@@ -392,19 +393,24 @@ public class GridIndex<T>
     /// <param name="yMinQuery">Minimální Y oblasti dotazu.</param>
     /// <param name="yMaxQuery">Maximální Y oblasti dotazu.</param>
     /// <returns>Objekt AreaSearchResult obsahující nalezené body a indexy prohledaných buněk.</returns>
+// Uvnitř třídy GridIndex<T>
+
+    /// <summary>
+    /// Najde všechny body (jako objekty GridNode<T>) v zadané obdélníkové oblasti
+    /// a vrátí je spolu s informací o prohledaných buňkách mřížky.
+    /// </summary>
+    /// <returns>Objekt AreaSearchResult obsahující nalezené uzly (GridNode) a indexy prohledaných buněk.</returns>
     public AreaSearchResult<T> FindPointsInArea(double xMinQuery, double xMaxQuery, double yMinQuery, double yMaxQuery)
     {
-        // Vytvoříme instanci pro ukládání výsledků
-        var result = new AreaSearchResult<T>();
+        var result = new AreaSearchResult<T>(); // Vytvoří instanci s List<GridNode<T>>
 
-        // Základní kontroly
+        // ... (stejné kontroly a výpočty indexů jako předtím) ...
         if (grid == null || xLines == null || yLines == null || xLines.Count < 2 || yLines.Count < 2)
         {
             Console.WriteLine("FindPointsInArea: Mřížka není správně inicializována.");
-            return result; // Vrátíme prázdný výsledek
+            return result;
         }
 
-        // Určení rozsahu buněk k prohledání
         int xStartIndex = FindIndex(xLines, xMinQuery);
         int xEndIndex = FindIndex(xLines, xMaxQuery);
         int yStartIndex = FindIndex(yLines, yMinQuery);
@@ -413,36 +419,31 @@ public class GridIndex<T>
         Console.WriteLine($"Hledání v oblasti ({xMinQuery}, {yMinQuery}) až ({xMaxQuery}, {yMaxQuery})");
         Console.WriteLine($"Prohledávají se buňky mřížky X:[{xStartIndex}-{xEndIndex}], Y:[{yStartIndex}-{yEndIndex}]");
 
-        // Procházení relevantních buněk mřížky
+
         for (int i = xStartIndex; i <= xEndIndex; i++)
         {
-            // Bezpečnostní kontrola indexu sloupce a null sloupce
             if (i < 0 || i >= grid.Count || grid[i] == null) continue;
 
             for (int j = yStartIndex; j <= yEndIndex; j++)
             {
-                // Bezpečnostní kontrola indexu řádku a null buňky
                 if (j < 0 || j >= grid[i].Count || grid[i][j] == null) continue;
 
-                // === Záznam prohledávané buňky ===
-                result.CheckedCellIndices.Add((i, j));
-                // ===================================
+                result.CheckedCellIndices.Add((i, j)); // Zaznamená prohledanou buňku
 
                 var cell = grid[i][j];
-                // Procházení bodů uvnitř aktuální buňky
                 foreach (var node in cell)
                 {
-                    // Finální ověření, zda bod skutečně leží v *přesné* dotazované oblasti
+                    // Přesná kontrola souřadnic bodu vůči hledané oblasti
                     if (node.X >= xMinQuery && node.X <= xMaxQuery &&
                         node.Y >= yMinQuery && node.Y <= yMaxQuery)
                     {
-                        result.FoundPoints.Add(node.Data);
+                        // Přidáme celý objekt GridNode do výsledků
+                        result.FoundPoints.Add(node); // <--- Změna zde
                     }
                 }
             }
         }
-        // Vrátíme objekt s výsledky (nalezené body a prohledané buňky)
-        return result;
+        return result; // Vrátí objekt s List<GridNode<T>> a List<(int, int)>
     }
     public bool Save(string filePath = null)
     {
