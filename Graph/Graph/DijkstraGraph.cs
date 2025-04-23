@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
-namespace Graph
+namespace Graph.Graph
 {
     public class DijkstraGraph<KVertex, VVertex, VEdge> : Graph<KVertex, VVertex, VEdge> where VEdge : IComparable<VEdge>, INumber<VEdge>
     {
