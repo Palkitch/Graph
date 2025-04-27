@@ -28,8 +28,8 @@ namespace GraphGUI // Váš namespace
         private const string GridDataBasePath = "GridIndicesFixed"; // Adresář pro datasety (fixní velikost)
         private const string IndexFileName = "index_fixed.idx"; // Odlišíme názvy souborů
         private const string DataFileName = "data_fixed.dat";
-        private const int DefaultBlockingFactor = 3;
-        private const double GridMinX = 0, GridMaxX = 100, GridMinY = 0, GridMaxY = 100;
+        private const int DefaultBlockingFactor = 30;
+        private const double GridMinX = 0, GridMaxX = 1000, GridMinY = 0, GridMaxY = 1000;
 
         // --- Serializátor pro CityData (jedna instance pro celou aplikaci) ---
         private readonly IFixedSizeSerializer<CityData> cityDataSerializer = new CityDataFixedSizeSerializer();
@@ -41,6 +41,7 @@ namespace GraphGUI // Váš namespace
         public MainWindow()
         {
             InitializeComponent();
+            //OneTimeGenerator.GenerateFiles();
             InitializeApp();
         }
 
@@ -101,8 +102,7 @@ namespace GraphGUI // Váš namespace
                 // === Vytvoření instance s PŘEDANÝM SERIALIZÁTOREM ===
                 fileGridIndex = new FileGridIndex<CityData>(idxPath, datPath, DefaultBlockingFactor,
                                                            GridMinX, GridMaxX, GridMinY, GridMaxY,
-                                                           cityDataSerializer); // <<< ZDE se předává
-                                                                                // ====================================================
+                                                           cityDataSerializer);
                 if (!fileGridIndex.IsLoaded)
                 {
                     MessageTextBox.Text += $"\nCHYBA načtení/vytvoření souborů."; SetGridUIEnabled(false);

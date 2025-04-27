@@ -7,7 +7,6 @@ using System.Linq;
 using System.Text;
 using System.Globalization;
 using System.Threading;
-using Graph.City;
 
 // Předpokládá existenci:
 // - interface IFixedSizeSerializer<T>
@@ -527,39 +526,31 @@ namespace Graph.Grid
                 if (!newBlocksData.TryGetValue(key, out var list)) { list = new List<GridNode<T>>(); newBlocksData[key] = list; }
                 list.Add(node);
             }
-
-            // 3. Zápis NOVÝCH bloků na KONEC .dat a aktualizace cellIndex v RAM
-            // Původní offset buňky [xIndex][yIndex] se stává neplatným (data budou jinde)
-            // Označíme původní buňku (pokud ji nepřepíše některý z nových bloků) jako prázdnou
             bool originalCellOverwritten = false;
 
             bool writeOk = true;
             foreach (var kvp in newBlocksData)
             {
-                var cellCoords = kvp.Key; // (ni, nj) - nové souřadnice buňky
+                var cellCoords = kvp.Key;
                 var nodes = kvp.Value;
 
                 if (nodes.Count > BLOCKING_FACTOR)
                 {
                     Console.WriteLine($" !!! Chyba Split: Buňka [{cellCoords.Item1}][{cellCoords.Item2}] má po redistribuci {nodes.Count} > {BLOCKING_FACTOR} bodů!");
-                    // Toto by nemělo nastat, pokud je BF>1 a medián dělí dobře
-                    // Můžeme zkusit zapsat jen BF bodů nebo vyhodit chybu
+
                     writeOk = false; break;
                 }
 
-                // Zapíšeme blok na KONEC souboru .dat
                 CellInfo newInfo = AppendBlock(nodes);
                 if (newInfo.Offset != -1)
                 {
-                    // Aktualizujeme metadata v RAM pro tuto buňku na jejích NOVÝCH souřadnicích
                     if (cellCoords.Item1 < cellIndex.Count && cellCoords.Item2 < cellIndex[cellCoords.Item1].Count)
                     {
                         cellIndex[cellCoords.Item1][cellCoords.Item2] = newInfo;
                         if (cellCoords.Item1 == xIndex && cellCoords.Item2 == yIndex)
                         {
-                            originalCellOverwritten = true; // Označíme, že původní slot byl logicky přepsán
+                            originalCellOverwritten = true;
                         }
-                        // Console.WriteLine($" -> Split: Blok [{cellCoords.Item1}][{cellCoords.Item2}] zapsán na konec (Offset: {newInfo.Offset})");
                     }
                     else
                     {
@@ -568,34 +559,45 @@ namespace Graph.Grid
                 }
                 else { Console.WriteLine($"Chyba Split: Zápis bloku pro [{cellCoords.Item1}][{cellCoords.Item2}] selhal!"); writeOk = false; break; }
             }
-
-            // Pokud původní buňka nebyla přepsána daty z newBlocksData (což by se nemělo stát,
-            // pokud redistribuce funguje), označíme ji jako prázdnou v RAM.
-            // Lepší je spolehnout se, že ji newBlocksData přepsaly. Pokud ne, je někde chyba.
-            // if (!originalCellOverwritten && xIndex < cellIndex.Count && yIndex < cellIndex[xIndex].Count) {
-            //     cellIndex[xIndex][yIndex] = CellInfo.Empty;
-            //     Console.WriteLine($" -> Split: Původní buňka [{xIndex}][{yIndex}] označena jako prázdná (data přepsána jinam).");
-            // }
-
-
-            // --- Konec kritické sekce ---
-
             Console.WriteLine($"Split dokončen {(writeOk ? "úspěšně" : "s chybami")}. Nové rozměry: {xLines.Count - 1}x{yLines.Count - 1}");
             return writeOk;
         }
 
 
-        // --- Veřejné Metody (Find*, Delete*) ---
 
         public GridNode<T> FindPoint(double x, double y)
-        { /* ... Implementace s LoadBlock jako dříve ... */
+        {
             if (!IsLoaded) return null; int i = FindIndex(xLines, x); int j = FindIndex(yLines, y); if (i < 0 || j < 0 || i >= cellIndex.Count || j >= cellIndex[i].Count) return null; List<GridNode<T>> block = LoadBlock(i, j); if (block == null) return null; double tol = 1e-9; foreach (var n in block) if (n != null && Math.Abs(n.X - x) < tol && Math.Abs(n.Y - y) < tol) return n; return null;
         }
 
         public AreaSearchResult<T> FindPointsInArea(double xMinQuery, double xMaxQuery, double yMinQuery, double yMaxQuery)
-        { /* ... Implementace s LoadBlock jako dříve ... */
-            var result = new AreaSearchResult<T>(); if (!IsLoaded) return result; int iS = FindIndex(xLines, xMinQuery), iE = FindIndex(xLines, xMaxQuery); int jS = FindIndex(yLines, yMinQuery), jE = FindIndex(yLines, yMaxQuery); if (iS < 0 || iE < 0 || jS < 0 || jE < 0) return result;
-            for (int i = iS; i <= iE; i++) { if (i >= cellIndex.Count) continue; for (int j = jS; j <= jE; j++) { if (j >= cellIndex[i].Count) continue; result.CheckedCellIndices.Add((i, j)); CellInfo info = cellIndex[i][j]; if (info.PointCount > 0 && info.Offset >= 0) { List<GridNode<T>> block = LoadBlock(i, j); if (block != null) foreach (var node in block) if (node != null && node.X >= xMinQuery && node.X <= xMaxQuery && node.Y >= yMinQuery && node.Y <= yMaxQuery) result.FoundPoints.Add((node, i, j, info.Offset)); } } }
+        {
+            var result = new AreaSearchResult<T>();
+            if (!IsLoaded)
+                return result;
+            int iS = FindIndex(xLines, xMinQuery), iE = FindIndex(xLines, xMaxQuery);
+            int jS = FindIndex(yLines, yMinQuery), jE = FindIndex(yLines, yMaxQuery);
+            if (iS < 0 || iE < 0 || jS < 0 || jE < 0)
+                return result;
+            for (int i = iS; i <= iE; i++)
+            {
+                if (i >= cellIndex.Count) continue;
+                for (int j = jS; j <= jE; j++)
+                {
+                    if (j >= cellIndex[i].Count)
+                        continue;
+                    result.CheckedCellIndices.Add((i, j));
+                    CellInfo info = cellIndex[i][j];
+                    if (info.PointCount > 0 && info.Offset >= 0)
+                    {
+                        List<GridNode<T>> block = LoadBlock(i, j);
+                        if (block != null)
+                            foreach (var node in block)
+                                if (node != null && node.X >= xMinQuery && node.X <= xMaxQuery && node.Y >= yMinQuery && node.Y <= yMaxQuery)
+                                    result.FoundPoints.Add((node, i, j, info.Offset));
+                    }
+                }
+            }
             return result;
         }
 

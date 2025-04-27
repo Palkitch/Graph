@@ -8,11 +8,9 @@ using System.Globalization;
 
 namespace Graph
 {
-    // Rozhraní (pokud ho chcete používat pro složitější T)
     public interface IBinarySerializable
     {
         void WriteTo(BinaryWriter writer);
-        // ReadFrom by muselo být řešeno jinak (např. statická tovární metoda)
     }
 
     // Metadata buňky pro indexový soubor

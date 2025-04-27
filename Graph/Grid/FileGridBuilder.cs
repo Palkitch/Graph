@@ -1,5 +1,4 @@
 ﻿// FileGridBuilder.cs - Upraveno pro IFixedSizeSerializer<T>
-using Graph.City;
 using Graph;
 using System;
 using System.Collections.Generic;

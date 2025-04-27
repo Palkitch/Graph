@@ -1,7 +1,4 @@
-﻿using Graph.City;
-
-
-namespace Graph.Grid
+﻿namespace Graph.Grid
 {
     [Serializable]
     public class GridNode<T> // Zůstává generický
