@@ -155,7 +155,7 @@ namespace GraphGUI // Váš namespace
             string tip = isEnabled ? null : "Vyberte/vytvořte dataset."; AddCityButton.ToolTip = FindPointButton.ToolTip = FindIntervalButton.ToolTip = PrintLinesButton.ToolTip = PrintGridButton.ToolTip = DeletePointButton.ToolTip = tip;
         }
         private bool CheckGridIndexReady() { if (fileGridIndex == null || !fileGridIndex.IsLoaded) { MessageBox.Show("Není načten dataset!", "Chyba", MessageBoxButton.OK, MessageBoxImage.Warning); return false; } return true; }
-        private void Swap(ref double a, ref double b) { double t = a; a = b; b = t; }
+        private void Swap(ref int a, ref int b) { int t = a; a = b; b = t; }
 
 
         // --- Obslužné metody pro tlačítka Gridu ---
@@ -205,8 +205,8 @@ namespace GraphGUI // Váš namespace
         private void DeletePointButton_Click(object sender, RoutedEventArgs e)
         {
             if (!CheckGridIndexReady()) return;
-            if (double.TryParse(DeleteXTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double x) &&
-                double.TryParse(DeleteYTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double y))
+            if (int.TryParse(DeleteXTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out int x) &&
+                int.TryParse(DeleteYTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out int y))
             {
                 try
                 {
@@ -221,8 +221,8 @@ namespace GraphGUI // Váš namespace
         private void FindPointButton_Click(object sender, RoutedEventArgs e)
         {
             if (!CheckGridIndexReady()) return;
-            if (double.TryParse(SearchXTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double searchX) &&
-                double.TryParse(SearchYTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double searchY))
+            if (int.TryParse(SearchXTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out int searchX) &&
+                int.TryParse(SearchYTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out int searchY))
             {
                 try
                 {
@@ -244,10 +244,10 @@ namespace GraphGUI // Váš namespace
         private void FindIntervalButton_Click(object sender, RoutedEventArgs e)
         {
             if (!CheckGridIndexReady()) return;
-            if (double.TryParse(IntervalX1TextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double x1) &&
-                double.TryParse(IntervalY1TextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double y1) &&
-                double.TryParse(IntervalX2TextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double x2) &&
-                double.TryParse(IntervalY2TextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double y2))
+            if (int.TryParse(IntervalX1TextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out int x1) &&
+                int.TryParse(IntervalY1TextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out int y1) &&
+                int.TryParse(IntervalX2TextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out int x2) &&
+                int.TryParse(IntervalY2TextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out int y2))
             {
                 if (x1 > x2) Swap(ref x1, ref x2); if (y1 > y2) Swap(ref y1, ref y2);
                 try
