@@ -560,7 +560,8 @@ namespace Graph.Grid
 
         public GridNode<T> FindPoint(double x, double y)
         {
-            if (!IsLoaded) return null; int i = FindIndex(xLines, x);
+            if (!IsLoaded) return null;
+            int i = FindIndex(xLines, x);
             int j = FindIndex(yLines, y);
             if (i < 0 || j < 0 || i >= cellIndex.Count || j >= cellIndex[i].Count)
                 return null;
@@ -616,9 +617,13 @@ namespace Graph.Grid
         }
         // Uvnitř třídy FileGridIndex<T>
 
-        public bool AddPoint(T data, double x, double y)
+        public bool AddPoint(T data, int x, int y)
         {
-            if (!IsLoaded) { Console.WriteLine("AddPoint: Index není načten."); return false; }
+            if (!IsLoaded)
+            {
+                Console.WriteLine("AddPoint: Index není načten.");
+                return false;
+            }
             if (data == null) throw new ArgumentNullException(nameof(data));
             // VALIDACE/OŘÍZNUTÍ DAT ZDE
 

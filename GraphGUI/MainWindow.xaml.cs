@@ -41,7 +41,7 @@ namespace GraphGUI // Váš namespace
         public MainWindow()
         {
             InitializeComponent();
-            OneTimeGenerator.GenerateFiles();
+            //OneTimeGenerator.GenerateFiles();
             InitializeApp();
         }
 
@@ -169,8 +169,8 @@ namespace GraphGUI // Váš namespace
                 MessageBox.Show("Zadejte kladný počet obyv.");
                 return;
             }
-            if (!double.TryParse(PointXTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double x) ||
-                !double.TryParse(PointYTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double y))
+            if (!int.TryParse(PointXTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out int x) ||
+                !int.TryParse(PointYTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out int y))
             {
                 MessageBox.Show("Zadejte platné X, Y.");
                 return;

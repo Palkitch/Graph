@@ -1,56 +1,56 @@
-﻿namespace Graph.Grid
+﻿// GridNode.cs - Upraveno pro int X, Y a IFixedSizeSerializer<T>
+using Graph;
+using System;
+using System.IO;
+
+[Serializable]
+public class GridNode<T>
 {
-    [Serializable]
-    public class GridNode<T> // Zůstává generický
+    public T Data { get; private set; }
+    public int X { get; private set; } // <<< ZMĚNA NA INT
+    public int Y { get; private set; } // <<< ZMĚNA NA INT
+
+    // Konstruktor přijímá int
+    public GridNode(T data, int x, int y) { Data = data; X = x; Y = y; }
+    private GridNode() { }
+    public override string ToString() => Data?.ToString() ?? "[Prázdný uzel]";
+
+    /// <summary>
+    /// Vypočítá fixní velikost serializovaného GridNode<T>.
+    /// </summary>
+    public static int GetFixedNodeSize(IFixedSizeSerializer<T> dataSerializer)
     {
-        public T Data { get; private set; }
-        public double X { get; private set; }
-        public double Y { get; private set; }
+        if (dataSerializer == null) throw new ArgumentNullException(nameof(dataSerializer));
+        // Velikost: X(4) + Y(4) + Fixní velikost T
+        return sizeof(int) + sizeof(int) + dataSerializer.GetFixedSize(); // <<< ZMĚNA sizeof(double) na sizeof(int)
+    }
 
-        // Konstruktory zůstávají stejné
-        public GridNode(T data, double x, double y) { Data = data; X = x; Y = y; }
-        private GridNode() { }
-        public override string ToString() => Data?.ToString() ?? "[Prázdný uzel]";
+    /// <summary>
+    /// Zapíše uzel pomocí předaného serializeru pro data T.
+    /// </summary>
+    public void WriteTo(BinaryWriter writer, IFixedSizeSerializer<T> dataSerializer)
+    {
+        if (dataSerializer == null) throw new ArgumentNullException(nameof(dataSerializer));
+        writer.Write(X); // <<< Zapisuje INT (4 B)
+        writer.Write(Y); // <<< Zapisuje INT (4 B)
+        dataSerializer.Write(writer, Data); // Zavolá serializer pro T
+    }
 
-        /// <summary>
-        /// Vypočítá fixní velikost serializovaného GridNode<T> na základě velikosti T.
-        /// </summary>
-        public static int GetFixedNodeSize(IFixedSizeSerializer<T> dataSerializer)
+    /// <summary>
+    /// Načte uzel pomocí předaného serializeru pro data T.
+    /// </summary>
+    public static GridNode<T> ReadFrom(BinaryReader reader, IFixedSizeSerializer<T> dataSerializer)
+    {
+        if (dataSerializer == null) throw new ArgumentNullException(nameof(dataSerializer));
+        var node = new GridNode<T>();
+        try
         {
-            if (dataSerializer == null) throw new ArgumentNullException(nameof(dataSerializer));
-            // Velikost: X(8) + Y(8) + Fixní velikost T
-            return sizeof(double) + sizeof(double) + dataSerializer.GetFixedSize();
+            node.X = reader.ReadInt32(); // <<< Čte INT (4 B)
+            node.Y = reader.ReadInt32(); // <<< Čte INT (4 B)
+            node.Data = dataSerializer.Read(reader); // Zavolá serializer pro T
+            if (node.Data == null && default(T) != null) { /* Varování pro value typy */ }
         }
-
-        /// <summary>
-        /// Zapíše uzel do binárního streamu s použitím specifikovaného serializátoru pro Data.
-        /// </summary>
-        public void WriteTo(BinaryWriter writer, IFixedSizeSerializer<T> dataSerializer)
-        {
-            if (dataSerializer == null) throw new ArgumentNullException(nameof(dataSerializer));
-            writer.Write(X); // 8 B
-            writer.Write(Y); // 8 B
-                             // Zapíšeme Data pomocí serializátoru (ten zajistí padding/ořezání a fixní délku)
-            dataSerializer.Write(writer, Data);
-        }
-
-        /// <summary>
-        /// Načte uzel z binárního streamu s použitím specifikovaného serializátoru pro Data.
-        /// </summary>
-        public static GridNode<T> ReadFrom(BinaryReader reader, IFixedSizeSerializer<T> dataSerializer)
-        {
-            if (dataSerializer == null) throw new ArgumentNullException(nameof(dataSerializer));
-            var node = new GridNode<T>();
-            try
-            {
-                node.X = reader.ReadDouble();
-                node.Y = reader.ReadDouble();
-                // Přečteme Data pomocí serializátoru (ten přečte fixní počet bytů)
-                node.Data = dataSerializer.Read(reader);
-            }
-            catch (EndOfStreamException eof) { Console.WriteLine($"Chyba čtení GridNode (EOF): {eof.Message}"); return null; }
-            catch (Exception ex) { Console.WriteLine($"Chyba čtení GridNode: {ex.Message}"); return null; }
-            return node;
-        }
+        catch (Exception ex) { Console.WriteLine($"Chyba čtení GridNode: {ex.Message}"); return null; }
+        return node;
     }
 }

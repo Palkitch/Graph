@@ -68,7 +68,7 @@ namespace Graph.Grid
         /// <summary>
         /// Přidá bod do paměťové mřížky. Pokud je buňka plná, zavolá SplitCell.
         /// </summary>
-        public void AddPoint(T data, double x, double y)
+        public void AddPoint(T data, int x, int y)
         {
             // Kontrola hranic
             if (xLines == null || yLines == null || x < xLines[0] || x > xLines[xLines.Count - 1] || y < yLines[0] || y > yLines[yLines.Count - 1])

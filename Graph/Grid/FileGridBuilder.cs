@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using Graph.Grid;
 
-public class FileGridBuilder<T> 
+public class FileGridBuilder<T>
 {
     private readonly GridIndex<T> inMemoryGrid; // Paměťový index
     private readonly int BLOCKING_FACTOR;
@@ -25,7 +25,7 @@ public class FileGridBuilder<T>
         Console.WriteLine($"BUILDER: BF={blockingFactor}, FixedNodeSize={FixedNodeSize}, FixedBlockDataSize={FixedBlockDataSize}");
     }
 
-    public void AddPoint(T data, double x, double y) => inMemoryGrid.AddPoint(data, x, y);
+    public void AddPoint(T data, int x, int y) => inMemoryGrid.AddPoint(data, x, y);
 
     public bool BuildFiles(string indexFilePath, string dataFilePath)
     {
