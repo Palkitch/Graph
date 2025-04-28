@@ -73,7 +73,6 @@ namespace Graph.Grid
             // Kontrola hranic
             if (xLines == null || yLines == null || x < xLines[0] || x > xLines[xLines.Count - 1] || y < yLines[0] || y > yLines[yLines.Count - 1])
             {
-                // Console.WriteLine($"MEMORY AddPoint: Bod ({x}, {y}) mimo hranice.");
                 return;
             }
 

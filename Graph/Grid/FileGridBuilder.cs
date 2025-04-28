@@ -1,14 +1,10 @@
-﻿// FileGridBuilder.cs - Upraveno pro IFixedSizeSerializer<T>
-using Graph;
+﻿using Graph;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using Graph.Grid;
-// ... další using ...
 
-// Předpokládá GridIndex<T> (paměťový), GridNode<T> (upravený), CellInfo
-
-public class FileGridBuilder<T> // Generický
+public class FileGridBuilder<T> 
 {
     private readonly GridIndex<T> inMemoryGrid; // Paměťový index
     private readonly int BLOCKING_FACTOR;

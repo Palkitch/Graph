@@ -1,5 +1,4 @@
-﻿// FileGridIndex.cs - KOMPLETNÍ KÓD - Generický, fixní bloky, hybridní split
-
+﻿
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,12 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Globalization;
 using System.Threading;
-
-// Předpokládá existenci:
-// - interface IFixedSizeSerializer<T>
-// - třídy GridNode<T> s upravenými WriteTo/ReadFrom přijímajícími IFixedSizeSerializer<T>
-// - třídy AreaSearchResult<T> s upraveným List<(Node, X, Y, Offset)> FoundPoints
-// - struct CellInfo
 
 /// <summary>
 /// Blokově orientovaný Grid Index s bloky FIXNÍ velikosti (pomocí paddingu).
@@ -567,7 +560,16 @@ namespace Graph.Grid
 
         public GridNode<T> FindPoint(double x, double y)
         {
-            if (!IsLoaded) return null; int i = FindIndex(xLines, x); int j = FindIndex(yLines, y); if (i < 0 || j < 0 || i >= cellIndex.Count || j >= cellIndex[i].Count) return null; List<GridNode<T>> block = LoadBlock(i, j); if (block == null) return null; double tol = 1e-9; foreach (var n in block) if (n != null && Math.Abs(n.X - x) < tol && Math.Abs(n.Y - y) < tol) return n; return null;
+            if (!IsLoaded) return null; int i = FindIndex(xLines, x);
+            int j = FindIndex(yLines, y);
+            if (i < 0 || j < 0 || i >= cellIndex.Count || j >= cellIndex[i].Count)
+                return null;
+            List<GridNode<T>> block = LoadBlock(i, j);
+            if (block == null) return null; double tol = 1e-9;
+            foreach (var n in block)
+                if (n != null && Math.Abs(n.X - x) < tol && Math.Abs(n.Y - y) < tol)
+                    return n;
+            return null;
         }
 
         public AreaSearchResult<T> FindPointsInArea(double xMinQuery, double xMaxQuery, double yMinQuery, double yMaxQuery)
@@ -612,79 +614,70 @@ namespace Graph.Grid
             }
             return success && deleted;
         }
+        // Uvnitř třídy FileGridIndex<T>
+
         public bool AddPoint(T data, double x, double y)
         {
-            if (!IsLoaded)
-            {
-                Console.WriteLine("AddPoint: Index není načten.");
-                return false;
-            }
+            if (!IsLoaded) { Console.WriteLine("AddPoint: Index není načten."); return false; }
             if (data == null) throw new ArgumentNullException(nameof(data));
+            // VALIDACE/OŘÍZNUTÍ DAT ZDE
 
-            // ZDE můžete přidat validaci/ořezání dat 'data' podle limitů definovaných v IFixedSizeSerializer<T>,
-            // aby nedošlo k chybě při zápisu WriteBlockInPlace nebo AppendBlock, pokud by data byla příliš velká.
-            // Např. if (data is CityData cd) cd.Name = CityData.TruncatePadName(cd.Name);
-
-            int i = FindIndex(xLines, x);
-            int j = FindIndex(yLines, y);
-
-            // Kontrola, zda jsou vypočtené indexy v platných mezích RAM indexu
-            if (i < 0 || cellIndex == null || i >= cellIndex.Count || cellIndex[i] == null || j < 0 || j >= cellIndex[i].Count)
-            {
-                Console.WriteLine($"AddPoint: Bod ({x},{y}) je mimo definované hranice mřížky nebo chyba indexu (Indexy: [{i}][{j}]).");
-                return false;
-            }
+            int i = FindIndex(xLines, x); int j = FindIndex(yLines, y);
+            if (i < 0 || j < 0 || i >= cellIndex.Count || j >= cellIndex[i].Count) { Console.WriteLine($"AddPoint: Bod ({x},{y}) mimo hranice."); return false; }
 
             bool success = false;
-            lock (fileLock) // Zamkneme celou operaci (čtení info, čtení bloku, zápis bloku, potenciální split, uložení indexu)
+            lock (fileLock)
             {
-                CellInfo info = cellIndex[i][j]; // Získáme metadata buňky
+                CellInfo info = cellIndex[i][j];
 
-                // Zkontrolujeme kapacitu pomocí PointCount z metadat
-                if (info.PointCount < BLOCKING_FACTOR)
+                // --- NOVÁ LOGIKA ---
+                if (info.Offset < 0 || info.PointCount == 0) // Podmínka pro prázdnou/nealokovanou buňku
                 {
-                    // Je místo: Načíst blok, přidat bod, přepsat blok na místě, uložit index
-                    Console.WriteLine($"AddPoint: Přidávám bod do buňky [{i}][{j}] (obsazeno {info.PointCount}/{BLOCKING_FACTOR})");
-                    List<GridNode<T>> blockData = LoadBlock(i, j);
-                    if (blockData == null)
-                    { // Kontrola chyby při načítání
-                        Console.WriteLine($"Chyba AddPoint: Nepodařilo se načíst blok [{i}][{j}] pro přidání.");
-                        return false; // return explicitně uvnitř lock není ideální, ale zde pro jednoduchost
-                    }
-                    blockData.Add(new GridNode<T>(data, x, y)); // Přidáme nový bod do načteného seznamu
-                    if (WriteBlockInPlace(i, j, blockData))
-                    { // Přepíšeme blok na disku na původním místě
-                        success = SaveIndex(); // Uložíme aktualizovaný index (.idx)
+                    // Buňka je prázdná, zapíšeme ji na konec souboru .dat
+                    Console.WriteLine($"AddPoint: Buňka [{i}][{j}] je prázdná. Přidávám na konec .dat...");
+                    List<GridNode<T>> blockData = new List<GridNode<T>>();
+                    blockData.Add(new GridNode<T>(data, x, y)); // Vytvoříme seznam s jedním bodem
+
+                    CellInfo newInfo = AppendBlock(blockData); // Zapíše na konec .dat a vrátí nová metadata
+                    if (newInfo.Offset != -1)
+                    { // Pokud zápis uspěl
+                        cellIndex[i][j] = newInfo; // Aktualizujeme index v RAM novým offsetem a počtem
+                        isIndexDirty = true;
+                        success = SaveIndex(); // Uložíme index .idx
                     }
                     else
                     {
-                        Console.WriteLine($"Chyba AddPoint: Nepodařilo se zapsat přepsaný blok [{i}][{j}].");
-                        success = false; // Chyba zápisu bloku
+                        Console.WriteLine($"Chyba AddPoint: Selhal AppendBlock pro [{i}][{j}].");
+                        success = false;
                     }
+                }
+                // --- KONEC NOVÉ LOGIKY ---
+                else if (info.PointCount < BLOCKING_FACTOR)
+                {
+                    // Buňka existuje a je v ní místo - načíst, přidat, přepsat na místě
+                    Console.WriteLine($"AddPoint: Přidávám bod do buňky [{i}][{j}] (obsazeno {info.PointCount}/{BLOCKING_FACTOR})");
+                    List<GridNode<T>> blockData = LoadBlock(i, j);
+                    if (blockData == null) { Console.WriteLine($"Chyba AddPoint: Načtení bloku [{i}][{j}] selhalo."); return false; }
+                    blockData.Add(new GridNode<T>(data, x, y));
+                    if (WriteBlockInPlace(i, j, blockData))
+                    { // Přepíše na původním offsetu
+                        success = SaveIndex();
+                    }
+                    else { success = false; }
                 }
                 else
                 {
                     // Blok je plný -> SPLIT (hybridní přístup)
                     Console.WriteLine($"AddPoint: Buňka [{i}][{j}] plná ({info.PointCount}/{BLOCKING_FACTOR}). Provádím split...");
-                    List<GridNode<T>> blockData = LoadBlock(i, j); // Načteme plný blok
-                    if (blockData == null)
-                    { // Kontrola chyby při načítání
-                        Console.WriteLine($"Chyba AddPoint: Nepodařilo se načíst blok [{i}][{j}] pro split.");
-                        return false;
-                    }
-                    blockData.Add(new GridNode<T>(data, x, y)); // Přidáme nový bod do paměti pro redistribuci
+                    List<GridNode<T>> blockData = LoadBlock(i, j);
+                    if (blockData == null) { Console.WriteLine($"Chyba AddPoint: Načtení bloku [{i}][{j}] pro split selhalo."); return false; }
+                    blockData.Add(new GridNode<T>(data, x, y));
 
-                    // Zavoláme metodu, která provede split v RAM, zapíše NOVÉ bloky na konec .dat
-                    // a aktualizuje index v RAM.
                     if (SplitCellAndAppend(i, j, blockData))
-                    {
-                        success = SaveIndex(); // Uložíme změněný index a čáry
+                    { // Split vytvoří nové bloky na konci .dat
+                        success = SaveIndex(); // Uložíme změněný index
                     }
-                    else
-                    {
-                        Console.WriteLine($"Chyba AddPoint: Operace SplitCellAndAppend selhala pro buňku [{i}][{j}].");
-                        success = false; // Split nebo zápis nových bloků selhal
-                    }
+                    else { success = false; } // Split selhal
                 }
             } // Konec lock
             return success;

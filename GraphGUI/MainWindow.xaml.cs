@@ -28,8 +28,8 @@ namespace GraphGUI // Váš namespace
         private const string GridDataBasePath = "GridIndicesFixed"; // Adresář pro datasety (fixní velikost)
         private const string IndexFileName = "index_fixed.idx"; // Odlišíme názvy souborů
         private const string DataFileName = "data_fixed.dat";
-        private const int DefaultBlockingFactor = 30;
-        private const double GridMinX = 0, GridMaxX = 1000, GridMinY = 0, GridMaxY = 1000;
+        private const int DefaultBlockingFactor = 3;
+        private const double GridMinX = 0, GridMaxX = 100, GridMinY = 0, GridMaxY = 100;
 
         // --- Serializátor pro CityData (jedna instance pro celou aplikaci) ---
         private readonly IFixedSizeSerializer<CityData> cityDataSerializer = new CityDataFixedSizeSerializer();
@@ -41,7 +41,7 @@ namespace GraphGUI // Váš namespace
         public MainWindow()
         {
             InitializeComponent();
-            //OneTimeGenerator.GenerateFiles();
+            OneTimeGenerator.GenerateFiles();
             InitializeApp();
         }
 
@@ -164,9 +164,17 @@ namespace GraphGUI // Váš namespace
         {
             if (!CheckGridIndexReady()) return;
             string cityName = CityNameTextBox.Text; // Oříznutí řeší CityData nebo Serializer
-            if (!int.TryParse(PopulationTextBox.Text, out int population) || population < 0) { MessageBox.Show("Zadejte kladný počet obyv."); return; }
+            if (!int.TryParse(PopulationTextBox.Text, out int population) || population < 0)
+            {
+                MessageBox.Show("Zadejte kladný počet obyv.");
+                return;
+            }
             if (!double.TryParse(PointXTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double x) ||
-                !double.TryParse(PointYTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double y)) { MessageBox.Show("Zadejte platné X, Y."); return; }
+                !double.TryParse(PointYTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double y))
+            {
+                MessageBox.Show("Zadejte platné X, Y.");
+                return;
+            }
 
             // Vytvoříme CityData (setter Name by měl oříznout dle konstanty MaxNameLength v CityData)
             var city = new CityData(cityName, population);

@@ -8,12 +8,6 @@ using System.Globalization;
 
 namespace Graph
 {
-    public interface IBinarySerializable
-    {
-        void WriteTo(BinaryWriter writer);
-    }
-
-    // Metadata buňky pro indexový soubor
     internal struct CellInfo
     {
         public long Offset;       // Pozice v .dat
